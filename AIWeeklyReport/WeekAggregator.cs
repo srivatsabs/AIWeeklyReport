@@ -1,0 +1,168 @@
+namespace AIWeeklyReport
+{
+    public class WeekAggregator
+    {
+        private const string VoidCancelled = "C";
+        private const string GroupAsphalt = "ASPHALT";
+        private const string GroupRockPlant = "ROCKPLANT";
+        private const string SaleTypeCustomer = "Customer";
+        private const string SaleTypeInventory = "Inventory";
+        private const string SaleTypeJob = "Job";
+        private const string GriModestoCustomerId = "A00011";
+
+        public WeekAggregate Build(List<Ticket> rawTickets, DateTime weekStart, DateTime weekEnd)
+        {
+            var agg = new WeekAggregate { WeekStart = weekStart.Date, WeekEnd = weekEnd.Date };
+
+            foreach (var t in rawTickets)
+            {
+                if (t.VoidStatus != "A" && t.VoidStatus != VoidCancelled)
+                    agg.DataQualityFlags.Add($"Ticket {t.TicketNo} has unrecognized VoidStatus='{t.VoidStatus}'.");
+
+                if (t.SaleType == SaleTypeJob && t.CustomerID != GriModestoCustomerId)
+                    agg.DataQualityFlags.Add($"Ticket {t.TicketNo}: SaleType='Job' but CustomerID='{t.CustomerID}' ({t.CustomerDescription}), not GRI-Modesto.");
+            }
+
+            var cancelled = rawTickets.Where(t => t.VoidStatus == VoidCancelled).ToList();
+            var active = rawTickets.Where(t => t.VoidStatus != VoidCancelled).ToList();
+
+            // --- Cancelled tickets ---
+            agg.CancelledCount = cancelled.Select(t => t.TicketNo).Distinct().Count();
+            agg.CancelledSales = cancelled.Sum(t => t.Price);
+            agg.CancelledTons = cancelled.Sum(t => t.Qty);
+            agg.CancelledTickets = cancelled
+                .Select(t => new CancelledTicketRow
+                {
+                    TicketNo = t.TicketNo,
+                    Date = t.TicketDate.Date,
+                    Plant = t.LocationDescription,
+                    Customer = t.CustomerDescription,
+                    Material = t.Description,
+                    Tons = t.Qty,
+                    Price = t.Price
+                })
+                .OrderByDescending(c => c.Price)
+                .ToList();
+
+            // --- Headline totals (active rows, all sale types) ---
+            agg.TotalTickets = active.Select(t => t.TicketNo).Distinct().Count();
+            agg.TotalTons = active.Where(t => (t.ProductID != "ENVIFEE")).Sum(t => t.Qty);
+            agg.TotalSales = active.Where(t => t.ProductID != "ENVIFEE").Sum(t => t.Price);
+            agg.CustomerTaxCollected = active.Where(t => t.SaleType == SaleTypeCustomer).Sum(t => t.TaxAmount);
+
+            // --- Sales by day (Sun..Sat from weekStart) ---
+            for (var d = weekStart.Date; d <= weekEnd.Date; d = d.AddDays(1))
+            {
+                var dayRows = active.Where(t => t.TicketDate.Date == d).ToList();
+                agg.Days.Add(new DayAgg
+                {
+                    Date = d,
+                    Tickets = dayRows.Select(t => t.TicketNo).Distinct().Count(),
+                    Tons = dayRows
+                                .Where(t => t.ProductID != "ENVIFEE" && t.Unit == "Ton")
+                                .Sum(t => t.Qty),
+                    Sales = dayRows
+                                .Where(t => t.ProductID != "ENVIFEE")
+                                .Sum(t => t.Price)
+                });
+            }
+
+            // --- Sales by plant, split by product group ---
+            agg.Plants = active
+                .GroupBy(t => t.LocationDescription)
+                .Select(g => new PlantAgg
+                {
+                    Plant = g.Key,
+                    AsphaltSales = g.Where(t => t.GroupID == GroupAsphalt).Sum(t => t.Price),
+                    RockSales = g.Where(t => t.GroupID == GroupRockPlant).Sum(t => t.Price),
+                    OtherSales = g.Where(t => t.GroupID != GroupAsphalt && t.GroupID != GroupRockPlant).Sum(t => t.Price),
+                    Tons = g.Sum(t => t.Qty),
+                    Tickets = g.Select(t => t.TicketNo).Distinct().Count()
+                })
+                .OrderByDescending(p => p.TotalSales)
+                .ToList();
+
+            // --- Sale type breakdown ---
+            agg.SaleTypes = active
+                .GroupBy(t => t.SaleType)
+                .Select(g => new SaleTypeAgg
+                {
+                    Type = g.Key,
+                    Tickets = g.Select(t => t.TicketNo).Distinct().Count(),
+                    Tons = g.Sum(t => t.Qty),
+                    Sales = g.Sum(t => t.Price)
+                })
+                .OrderByDescending(s => s.Sales)
+                .ToList();
+
+            // --- Product group breakdown ---
+            agg.ProductGroups = active
+                .GroupBy(t => t.GroupID == GroupAsphalt ? "Asphalt"
+                            : t.GroupID == GroupRockPlant ? "Rock plant"
+                            : "Unclassified material")
+                .Select(g => new ProductGroupAgg
+                {
+                    Label = g.Key,
+                    Tons = g.Sum(t => t.Qty),
+                    Sales = g.Sum(t => t.Price)
+                })
+                .OrderByDescending(p => p.Sales)
+                .ToList();
+
+            // --- Top products ---
+            agg.Products = active
+                .GroupBy(t => new { t.ProductID, t.Description, t.GroupID })
+                .Select(g => new ProductAgg
+                {
+                    ProductId = g.Key.ProductID,
+                    Description = g.Key.Description,
+                    GroupId = g.Key.GroupID,
+                    Lines = g.Count(),
+                    Tons = g.Sum(t => t.Qty),
+                    Sales = g.Sum(t => t.Price)
+                })
+                .OrderByDescending(p => p.Sales)
+                .ToList();
+
+            // --- Customers (all sale types, tagged when a customer is exclusively Job or Inventory) ---
+            agg.Customers = active
+                .GroupBy(t => new { t.CustomerID, t.CustomerDescription })
+                .Select(g =>
+                {
+                    var types = g.Select(t => t.SaleType).Distinct().ToList();
+                    var tag = types.Count == 1 && types[0] == SaleTypeJob ? "Internal jobs"
+                            : types.Count == 1 && types[0] == SaleTypeInventory ? "Inventory transfer"
+                            : "";
+                    return new CustomerAgg
+                    {
+                        CustomerId = g.Key.CustomerID,
+                        CustomerName = g.Key.CustomerDescription,
+                        Tickets = g.Select(t => t.TicketNo).Distinct().Count(),
+                        Tons = g.Sum(t => t.Qty),
+                        Sales = g.Sum(t => t.Price),
+                        Tag = tag
+                    };
+                })
+                .OrderByDescending(c => c.Sales)
+                .ToList();
+
+            // --- Job orders (SaleType='Job' only, grouped by job code + project + plant) ---
+            agg.JobOrders = active
+                .Where(t => t.SaleType == SaleTypeJob)
+                .GroupBy(t => new { t.PurchaseOrder, t.DeliveryAddress1, t.LocationDescription })
+                .Select(g => new JobOrderAgg
+                {
+                    JobCode = g.Key.PurchaseOrder,
+                    Description = g.Key.DeliveryAddress1,
+                    Plant = g.Key.LocationDescription,
+                    Tickets = g.Select(t => t.TicketNo).Distinct().Count(),
+                    Tons = g.Sum(t => t.Qty),
+                    Sales = g.Sum(t => t.Price)
+                })
+                .OrderByDescending(j => j.Sales)
+                .ToList();
+
+            return agg;
+        }
+    }
+}
