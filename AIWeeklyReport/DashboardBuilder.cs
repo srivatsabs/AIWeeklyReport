@@ -106,9 +106,10 @@ namespace AIWeeklyReport
 
         /// <summary>
         /// Rule-based summary built only from figures actually computed above — no fabricated
-        /// claims about specific jobs or causes the data can't support on its own.
+        /// claims about specific jobs or causes the data can't support on its own. Used as the
+        /// default lede, and as the fallback if the AI narrative generator is unavailable or fails.
         /// </summary>
-        private static List<string> BuildLede(DashboardData data)
+        public static List<string> BuildLede(DashboardData data)
         {
             var paras = new List<string>();
             var salesChange = PercentChange(data.Current.TotalSales, data.Prior.TotalSales);

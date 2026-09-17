@@ -10,6 +10,16 @@ namespace AIWeeklyReport
         private const string SaleTypeJob = "Job";
         private const string GriModestoCustomerId = "A00011";
 
+        /// <summary>
+        /// Environmental fee line item. Fees are real revenue (kept in every Sales figure)
+        /// but aren't a quantity of material (excluded from every Tons figure). Applied via
+        /// this one predicate everywhere below so Sales and Tons stay consistent across every
+        /// section of the report — previously this was only applied to the headline and daily
+        /// totals, which made those numbers not reconcile with the plant/customer/product tables.
+        /// </summary>
+        private const string FeeProductId = "ENVIFEE";
+        private static bool IsFeeLine(Ticket t) => t.ProductID == FeeProductId;
+
         public WeekAggregate Build(List<Ticket> rawTickets, DateTime weekStart, DateTime weekEnd)
         {
             var agg = new WeekAggregate { WeekStart = weekStart.Date, WeekEnd = weekEnd.Date };
@@ -45,9 +55,10 @@ namespace AIWeeklyReport
                 .ToList();
 
             // --- Headline totals (active rows, all sale types) ---
+            // Sales include fee revenue; Tons exclude fee lines (a fee isn't a quantity of material).
             agg.TotalTickets = active.Select(t => t.TicketNo).Distinct().Count();
-            agg.TotalTons = active.Where(t => (t.ProductID != "ENVIFEE")).Sum(t => t.Qty);
-            agg.TotalSales = active.Where(t => t.ProductID != "ENVIFEE").Sum(t => t.Price);
+            agg.TotalTons = active.Where(t => !IsFeeLine(t)).Sum(t => t.Qty);
+            agg.TotalSales = active.Sum(t => t.Price);
             agg.CustomerTaxCollected = active.Where(t => t.SaleType == SaleTypeCustomer).Sum(t => t.TaxAmount);
 
             // --- Sales by day (Sun..Sat from weekStart) ---
@@ -58,12 +69,8 @@ namespace AIWeeklyReport
                 {
                     Date = d,
                     Tickets = dayRows.Select(t => t.TicketNo).Distinct().Count(),
-                    Tons = dayRows
-                                .Where(t => t.ProductID != "ENVIFEE" && t.Unit == "Ton")
-                                .Sum(t => t.Qty),
-                    Sales = dayRows
-                                .Where(t => t.ProductID != "ENVIFEE")
-                                .Sum(t => t.Price)
+                    Tons = dayRows.Where(t => !IsFeeLine(t)).Sum(t => t.Qty),
+                    Sales = dayRows.Sum(t => t.Price)
                 });
             }
 
@@ -76,7 +83,7 @@ namespace AIWeeklyReport
                     AsphaltSales = g.Where(t => t.GroupID == GroupAsphalt).Sum(t => t.Price),
                     RockSales = g.Where(t => t.GroupID == GroupRockPlant).Sum(t => t.Price),
                     OtherSales = g.Where(t => t.GroupID != GroupAsphalt && t.GroupID != GroupRockPlant).Sum(t => t.Price),
-                    Tons = g.Sum(t => t.Qty),
+                    Tons = g.Where(t => !IsFeeLine(t)).Sum(t => t.Qty),
                     Tickets = g.Select(t => t.TicketNo).Distinct().Count()
                 })
                 .OrderByDescending(p => p.TotalSales)
@@ -89,7 +96,7 @@ namespace AIWeeklyReport
                 {
                     Type = g.Key,
                     Tickets = g.Select(t => t.TicketNo).Distinct().Count(),
-                    Tons = g.Sum(t => t.Qty),
+                    Tons = g.Where(t => !IsFeeLine(t)).Sum(t => t.Qty),
                     Sales = g.Sum(t => t.Price)
                 })
                 .OrderByDescending(s => s.Sales)
@@ -97,13 +104,14 @@ namespace AIWeeklyReport
 
             // --- Product group breakdown ---
             agg.ProductGroups = active
-                .GroupBy(t => t.GroupID == GroupAsphalt ? "Asphalt"
+                .GroupBy(t => IsFeeLine(t) ? "Fees"
+                            : t.GroupID == GroupAsphalt ? "Asphalt"
                             : t.GroupID == GroupRockPlant ? "Rock plant"
                             : "Unclassified material")
                 .Select(g => new ProductGroupAgg
                 {
                     Label = g.Key,
-                    Tons = g.Sum(t => t.Qty),
+                    Tons = g.Where(t => !IsFeeLine(t)).Sum(t => t.Qty),
                     Sales = g.Sum(t => t.Price)
                 })
                 .OrderByDescending(p => p.Sales)
@@ -138,7 +146,7 @@ namespace AIWeeklyReport
                         CustomerId = g.Key.CustomerID,
                         CustomerName = g.Key.CustomerDescription,
                         Tickets = g.Select(t => t.TicketNo).Distinct().Count(),
-                        Tons = g.Sum(t => t.Qty),
+                        Tons = g.Where(t => !IsFeeLine(t)).Sum(t => t.Qty),
                         Sales = g.Sum(t => t.Price),
                         Tag = tag
                     };
@@ -156,7 +164,7 @@ namespace AIWeeklyReport
                     Description = g.Key.DeliveryAddress1,
                     Plant = g.Key.LocationDescription,
                     Tickets = g.Select(t => t.TicketNo).Distinct().Count(),
-                    Tons = g.Sum(t => t.Qty),
+                    Tons = g.Where(t => !IsFeeLine(t)).Sum(t => t.Qty),
                     Sales = g.Sum(t => t.Price)
                 })
                 .OrderByDescending(j => j.Sales)
