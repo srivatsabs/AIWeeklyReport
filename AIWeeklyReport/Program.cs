@@ -1,14 +1,13 @@
 using Microsoft.Extensions.Configuration;
+
 namespace AIWeeklyReport
 {
     public class Program
     {
         public static async Task Main(string[] args)
         {
-            // ---- Configure these for each run ----
-            //string connectionString = "Server=10.10.3.101\\VISTA;Initial Catalog=BRI_Custom;User ID=SQLReports;Password=%hPsq72G;MultipleActiveResultSets=true;Encrypt=False;TrustServerCertificate=True;";
-            DateTime weekStart = DateTime.Parse("2026-08-02");
-            DateTime weekEnd = DateTime.Parse("2026-08-08");
+            DateTime weekStart = DateTime.Parse("2026-09-13");
+            DateTime weekEnd = DateTime.Parse("2026-09-19");
             // ----------------------------------------
             var config = new ConfigurationBuilder()
                             .SetBasePath(AppContext.BaseDirectory)
@@ -32,9 +31,6 @@ namespace AIWeeklyReport
             // dashboard.LedeParagraphs is already set to the rule-based summary here —
             // it's what ships if the AI call below is skipped or fails.
 
-            // ---- AI-written narrative (falls back to the rule-based summary above) ----
-            //var apiKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
-
             var narrativeGenerator = new AiNarrativeGenerator(claudeApiKey);
             dashboard.LedeParagraphs = await narrativeGenerator.GenerateLedeAsync(dashboard, dashboard.LedeParagraphs);
 
@@ -50,6 +46,40 @@ namespace AIWeeklyReport
                 Console.WriteLine($"\n{dashboard.DataQualityFlags.Count} data-quality flag(s) — review before distributing:");
                 foreach (var f in dashboard.DataQualityFlags)
                     Console.WriteLine($"  - {f}");
+            }
+
+            // ---- Push the report to SharePoint (app-only auth via Microsoft Graph) ----
+            var spTenantId = config["AzureAd:TenantId"] ?? throw new InvalidOperationException("AzureAd:TenantId is missing from appsettings.json"); 
+            var spClientId = config["AzureAd:ClientId"] ?? throw new InvalidOperationException("AzureAd:ClientId is missing from appsettings.json"); 
+            var spClientSecret = config["AzureAd:ClientSecret"] ?? throw new InvalidOperationException("AzureAd:ClientSecret is missing from appsettings.json");
+            var spSiteHostname = config["Sharepoint:SiteHostname"] ?? throw new InvalidOperationException("Sharepoint:SiteHostname is missing from appsettings.json"); 
+            var spSitePath = config["Sharepoint:SitePath"] ?? throw new InvalidOperationException("Sharepoint:SitePath is missing from appsettings.json"); 
+            var spBaseFolder = config["Sharepoint:BaseFolder"] ?? throw new InvalidOperationException("Sharepoint:BaseFolder is missing from appsettings.json");
+            var spLibraryName = config["Sharepoint:LibraryName"]  ?? throw new InvalidOperationException("Sharepoint:LibraryName is missing from appsettings.json");
+
+            // Weekly Reports/{Year}/{Month name} — e.g. "Weekly Reports/2026/August".
+            // Uses the week's START date to decide which month a report belongs to; a week
+            // that spans a month boundary (e.g. Aug 30–Sep 5) files under the starting month.
+            var spFolderPath = string.IsNullOrWhiteSpace(spBaseFolder) ? $"{weekStart:yyyy}/{weekStart:MMMM}" : $"{spBaseFolder.Trim('/')}/{weekStart:yyyy}/{weekStart:MMMM}";
+
+            if (!string.IsNullOrWhiteSpace(spTenantId) && !string.IsNullOrWhiteSpace(spClientId) &&
+                !string.IsNullOrWhiteSpace(spClientSecret) && !string.IsNullOrWhiteSpace(spSiteHostname) &&
+                !string.IsNullOrWhiteSpace(spSitePath))
+            {
+                try
+                {
+                    var uploader = new SharePointUploader(spTenantId, spClientId, spClientSecret, spSiteHostname, spSitePath, spLibraryName);
+                    var webUrl = await uploader.UploadFileAsync(fileName, spFolderPath);
+                    Console.WriteLine($"Uploaded to SharePoint: {webUrl}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"SharePoint upload failed (report was still written locally): {ex.Message}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("SharePoint upload skipped — SHAREPOINT_* environment variables not fully set.");
             }
         }
     }
