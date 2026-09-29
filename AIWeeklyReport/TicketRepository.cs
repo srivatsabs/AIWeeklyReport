@@ -11,16 +11,9 @@ namespace AIWeeklyReport
             _connectionString = connectionString;
         }
 
-        public List<Ticket> GetTickets(DateTime weekStart, DateTime weekEnd)
+        public List<Ticket> GetTickets(DateTime weekStart, DateTime weekEnd, string viewDefinition)
         {
-            const string sql = @"
-                SELECT TicketNo, TicketDate, LocationID, CustomerID, OrderID, TaxCodeID,
-                       PurchaseOrder, Description, DeliveryAddress1, Address1, City, State,
-                       County, Zip, ProductID, Qty, Unit, UnitPrice, Price, FreightRate,
-                       FreightAmount, TaxAmount, TaxableAmount, VoidStatus, CustomerDescription,
-                       LocationDescription, GroupID, SaleType, UniqueID
-                FROM DW_Reports.dbo.vw_GRI_Daily_Tickets
-                WHERE TicketDate >= @WeekStart AND TicketDate <= @WeekEnd";
+            string sql = viewDefinition;
 
             var tickets = new List<Ticket>();
 
@@ -74,6 +67,46 @@ namespace AIWeeklyReport
         {
             if (value == null || value == DBNull.Value) return 0m;
             return Convert.ToDecimal(value);
+        }
+
+        public List<CompanyDetails> GetCompanyDetails()
+        {
+            const string sql = @"
+                SELECT *
+                FROM [BRI_Custom].[dbo].[AIWeeklyReport_Configuration]";
+                
+
+            var companyDetails = new List<CompanyDetails>();
+
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(sql, conn);
+            
+
+            conn.Open();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                companyDetails.Add(new CompanyDetails
+                {
+                    ViewName = reader["ViewName"]?.ToString() ?? "",
+                    CompanyName = reader["CompanyName"]?.ToString() ?? "",
+                    FileName = reader["FileName"]?.ToString() ?? "",
+                    ViewFields = reader["ViewFields"]?.ToString() ?? "",
+                    Title = reader["Title"]?.ToString() ?? "",
+                    VoidCancelled = reader["VoidCancelled"]?.ToString() ?? "",
+        GroupAsphalt = reader["GroupAsphalt"]?.ToString() ?? "",
+       GroupRockPlant = reader["GroupRockPlant"]?.ToString() ?? "",
+       SaleTypeCustomer = reader["SaleTypeCustomer"]?.ToString() ?? "",
+       SaleTypeInventory = reader["SaleTypeInventory"]?.ToString() ?? "",
+       SaleTypeJob = reader["SaleTypeJob"]?.ToString() ?? "",
+       CustomerId = reader["CustomerId"]?.ToString() ?? "",
+       Location = reader["Location"]?.ToString() ?? "",
+                    Company = reader["Company"]?.ToString() ?? "",
+
+                });
+            }
+
+            return companyDetails;
         }
     }
 }

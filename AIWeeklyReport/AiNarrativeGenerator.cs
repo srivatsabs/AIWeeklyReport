@@ -46,11 +46,11 @@ namespace AIWeeklyReport
             }
         }
 
-        public async Task<List<string>> GenerateLedeAsync(DashboardData data, List<string> fallback, CancellationToken ct = default)
+        public async Task<List<string>> GenerateLedeAsync(DashboardData data, List<string> fallback, string companyName,CancellationToken ct = default)
         {
             try
             {
-                var prompt = BuildPrompt(data);
+                var prompt = BuildPrompt(data, companyName);
 
                 var requestBody = new
                 {
@@ -110,7 +110,7 @@ namespace AIWeeklyReport
                 .ToList();
         }
 
-        private static string BuildPrompt(DashboardData d)
+        private static string BuildPrompt(DashboardData d, string companyName)
         {
             var summary = new
             {
@@ -144,7 +144,7 @@ namespace AIWeeklyReport
 
             var dataJson = JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = false });
 
-            return $@"You are writing the short narrative summary at the top of GRI's internal weekly sales report.
+            return $@"You are writing the short narrative summary at the top of {companyName}'s internal weekly sales report.
 
 Write 2-4 short paragraphs (like a market recap) highlighting the most notable patterns in the data below: the overall sales/tonnage trend versus prior week, which plant(s) moved the most, and which customer(s) drove the biggest swings.
 

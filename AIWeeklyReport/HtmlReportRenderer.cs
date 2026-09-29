@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.ExtendedProperties;
 using System.Globalization;
 using System.Text;
 
@@ -7,31 +8,31 @@ namespace AIWeeklyReport
     {
         private static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
 
-        public string Render(DashboardData data)
+        public string Render(DashboardData data, CompanyDetails companyDetails)
         {
             var sb = new StringBuilder();
-            sb.Append(HeadAndCss(data));
+            sb.Append(HeadAndCss(data, companyDetails.Title));
             sb.Append("<div class=\"wrap\">\n");
-            sb.Append(Masthead(data));
+            sb.Append(Masthead(data, companyDetails.Title,companyDetails.ViewName, companyDetails.Company));
             sb.Append(Tiles(data));
             sb.Append(Lede(data));
             sb.Append(SalesByDaySection(data));
             sb.Append(SalesByPlantSection(data));
-            sb.Append(SaleTypeAndProductGroupSection(data));
+            sb.Append(SaleTypeAndProductGroupSection(data, companyDetails.CompanyName));
             sb.Append(TopProductsSection(data));
             sb.Append(TopCustomersAndMoversSection(data));
-            sb.Append(JobOrdersSection(data));
+            sb.Append(JobOrdersSection(data, companyDetails.CompanyName));
             sb.Append(CancelledTicketsSection(data));
-            sb.Append(Footer(data));
+            sb.Append(Footer(data, companyDetails.ViewName));
             sb.Append("</div>\n");
             sb.Append(Script(data));
             return sb.ToString();
         }
 
         // ---------- head / css ----------
-        private static string HeadAndCss(DashboardData d)
+        private static string HeadAndCss(DashboardData d, string title)
         {
-            return $@"<title>GRI Weekly Sales</title>
+            return $@"<title>{title}</title>
 <link rel=""stylesheet"" href=""https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"">
 <style>
 :root{{
@@ -143,17 +144,17 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
         }
 
         // ---------- sections ----------
-        private static string Masthead(DashboardData d)
+        private static string Masthead(DashboardData d, string title, string viewName, string company)
         {
             var c = d.Current;
             return $@"<header class=""mast"">
   <div>
-    <div class=""eyebrow"">George Reed Inc. &middot; Weekly Sales Report</div>
-    <h1>GRI Weekly Sales</h1>
+    <div class=""eyebrow"">{company} &middot; Weekly Sales Report</div>
+    <h1>{title}</h1>
     <div class=""period"">Week of {c.WeekStart:dddd, MMMM d} &ndash; {c.WeekEnd:dddd, MMMM d, yyyy}</div>
   </div>
   <div class=""meta"">
-    <div>Source <b>DW_Reports.dbo.vw_GRI_Daily_Tickets</b></div>
+    <div>Source <b>{viewName}</b></div>
     <div>Pulled <b>{DateTime.Now:MMM d, yyyy}</b> &middot; compared with <b>{d.Prior.WeekStart:MMM d} &ndash; {d.Prior.WeekEnd:MMM d}</b></div>
     <div>Active tickets only &middot; {c.CancelledCount} cancelled ticket{(c.CancelledCount == 1 ? "" : "s")} excluded</div>
   </div>
@@ -237,14 +238,14 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
             return sb.ToString();
         }
 
-        private static string SaleTypeAndProductGroupSection(DashboardData d)
+        private static string SaleTypeAndProductGroupSection(DashboardData d, string companyName)
         {
             var c = d.Current;
             var sb = new StringBuilder();
             sb.Append(@"<section class=""grid2"">
   <div>
     <div class=""sechead""><h2>Sale type</h2></div>
-    <p class=""cap"">Customer sales carry tax; job and inventory tickets do not. Inventory is material moved to another GRI plant.</p>
+    <p class=""cap"">Customer sales carry tax; job and inventory tickets do not. Inventory is material moved to another {companyName} plant.</p>
     <div class=""tblwrap""><table>
       <tr><th>Type</th><th class=""r"">Tickets</th><th class=""r"">Tons</th><th class=""r"">Sales</th><th class=""r"">Share</th></tr>
 ");
@@ -341,11 +342,11 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
             return sb.ToString();
         }
 
-        private static string JobOrdersSection(DashboardData d)
+        private static string JobOrdersSection(DashboardData d,string companyName)
         {
-            var sb = new StringBuilder(@"<section>
+            var sb = new StringBuilder($@"<section>
   <div class=""sechead""><h2>Job orders</h2></div>
-  <p class=""cap"">Material ticketed to GRI job numbers this week, ranked by sales.</p>
+  <p class=""cap"">Material ticketed to {companyName} job numbers this week, ranked by sales.</p>
   <div class=""tblwrap""><table>
     <tr><th>Job</th><th>Description</th><th>Plant</th><th class=""r"">Tickets</th><th class=""r"">Tons</th><th class=""r"">Sales</th></tr>
 ");
@@ -385,14 +386,14 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
             return sb.ToString();
         }
 
-        private static string Footer(DashboardData d)
+        private static string Footer(DashboardData d, string viewName)
         {
             var c = d.Current;
             var flagsNote = d.DataQualityFlags.Count > 0
                 ? $" {d.DataQualityFlags.Count} data-quality flag(s) were raised during generation and should be reviewed before distribution."
                 : "";
             return $@"<div class=""foot"">
-  <p>Built from the query <code>SELECT * FROM DW_Reports.[dbo].[vw_GRI_Daily_Tickets] WHERE TicketDate &gt;= '{c.WeekStart:MM/dd/yyyy}' AND TicketDate &lt;= '{c.WeekEnd:MM/dd/yyyy}'</code>.
+  <p>Built from the query <code>SELECT * FROM {viewName} WHERE TicketDate &gt;= '{c.WeekStart:MM/dd/yyyy}' AND TicketDate &lt;= '{c.WeekEnd:MM/dd/yyyy}'</code>.
   Sales is the sum of the Price column (material and fees, before tax). Tons is the sum of Qty (all rows use unit 'Ton').
   Prior-week figures use the same view for {d.Prior.WeekStart:MMM d} &ndash; {d.Prior.WeekEnd:MMM d}.{flagsNote}</p>
 </div>

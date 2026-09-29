@@ -2,14 +2,31 @@ namespace AIWeeklyReport
 {
     public class WeekAggregator
     {
-        private const string VoidCancelled = "C";
-        private const string GroupAsphalt = "ASPHALT";
-        private const string GroupRockPlant = "ROCKPLANT";
-        private const string SaleTypeCustomer = "Customer";
-        private const string SaleTypeInventory = "Inventory";
-        private const string SaleTypeJob = "Job";
-        private const string GriModestoCustomerId = "A00011";
-
+        //private const string VoidCancelled = "C";
+        //private const string GroupAsphalt = "ASPHALT";
+        //private const string GroupRockPlant = "ROCKPLANT";
+        //private const string SaleTypeCustomer = "Customer";
+        //private const string SaleTypeInventory = "Inventory";
+        //private const string SaleTypeJob = "Job";
+        //private const string CustomerId = "A00011";
+        private readonly string VoidCancelled;
+        private readonly string GroupAsphalt;
+        private readonly string GroupRockPlant;
+        private readonly string SaleTypeCustomer;
+        private readonly string SaleTypeInventory;
+        private readonly string SaleTypeJob;
+        private readonly string CustomerId;
+        public WeekAggregator(CompanyDetails companyDetails)
+       
+        {
+            VoidCancelled = companyDetails.VoidCancelled;
+            GroupAsphalt = companyDetails.GroupAsphalt;
+            GroupRockPlant = companyDetails.GroupRockPlant;
+            SaleTypeCustomer = companyDetails.SaleTypeCustomer;
+            SaleTypeInventory = companyDetails.SaleTypeInventory;
+            SaleTypeJob = companyDetails.SaleTypeJob;
+            CustomerId = companyDetails.CustomerId;
+        }
         /// <summary>
         /// Environmental fee line item. Fees are real revenue (kept in every Sales figure)
         /// but aren't a quantity of material (excluded from every Tons figure). Applied via
@@ -20,7 +37,7 @@ namespace AIWeeklyReport
         private const string FeeProductId = "ENVIFEE";
         private static bool IsFeeLine(Ticket t) => t.ProductID == FeeProductId;
 
-        public WeekAggregate Build(List<Ticket> rawTickets, DateTime weekStart, DateTime weekEnd)
+        public WeekAggregate Build(List<Ticket> rawTickets, DateTime weekStart, DateTime weekEnd, string Location)
         {
             var agg = new WeekAggregate { WeekStart = weekStart.Date, WeekEnd = weekEnd.Date };
 
@@ -29,8 +46,8 @@ namespace AIWeeklyReport
                 if (t.VoidStatus != "A" && t.VoidStatus != VoidCancelled)
                     agg.DataQualityFlags.Add($"Ticket {t.TicketNo} has unrecognized VoidStatus='{t.VoidStatus}'.");
 
-                if (t.SaleType == SaleTypeJob && t.CustomerID != GriModestoCustomerId)
-                    agg.DataQualityFlags.Add($"Ticket {t.TicketNo}: SaleType='Job' but CustomerID='{t.CustomerID}' ({t.CustomerDescription}), not GRI-Modesto.");
+                if (t.SaleType == SaleTypeJob && t.CustomerID != CustomerId)
+                    agg.DataQualityFlags.Add($"Ticket {t.TicketNo}: SaleType='Job' but CustomerID='{t.CustomerID}' ({t.CustomerDescription}), not {Location}.");
             }
 
             var cancelled = rawTickets.Where(t => t.VoidStatus == VoidCancelled).ToList();
