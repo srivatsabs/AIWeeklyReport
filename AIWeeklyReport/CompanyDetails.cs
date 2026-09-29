@@ -16,5 +16,6 @@
         public string SaleTypeJob { get; set; }
         public string CustomerId { get; set; }
         public string Location {  get; set; }
+        public string FolderPath { get; set; }
     }
 }

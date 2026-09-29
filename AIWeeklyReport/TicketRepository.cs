@@ -102,7 +102,7 @@ namespace AIWeeklyReport
        CustomerId = reader["CustomerId"]?.ToString() ?? "",
        Location = reader["Location"]?.ToString() ?? "",
                     Company = reader["Company"]?.ToString() ?? "",
-
+                    FolderPath = reader["FolderPath"]?.ToString() ?? "",
                 });
             }
 

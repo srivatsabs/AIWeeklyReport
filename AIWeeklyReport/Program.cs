@@ -64,7 +64,7 @@ namespace AIWeeklyReport
                 // Weekly Reports/{Year}/{Month name} — e.g. "Weekly Reports/2026/August".
                 // Uses the week's START date to decide which month a report belongs to; a week
                 // that spans a month boundary (e.g. Aug 30–Sep 5) files under the starting month.
-                var spFolderPath = string.IsNullOrWhiteSpace(spBaseFolder) ? $"{weekStart:yyyy}/{weekStart:MMMM}" : $"{spBaseFolder.Trim('/')}/{weekStart:yyyy}/{weekStart:MMMM}";
+                var spFolderPath = string.IsNullOrWhiteSpace(spBaseFolder) ? $"{company.FolderPath}/{weekStart:yyyy}/{weekStart:MMMM}" : $"{spBaseFolder.Trim('/')}/{company.FolderPath}/{weekStart:yyyy}/{weekStart:MMMM}";
 
                 if (!string.IsNullOrWhiteSpace(spTenantId) && !string.IsNullOrWhiteSpace(spClientId) &&
                     !string.IsNullOrWhiteSpace(spClientSecret) && !string.IsNullOrWhiteSpace(spSiteHostname) &&
