@@ -6,8 +6,8 @@ namespace AIWeeklyReport
     {
         public static async Task Main(string[] args)
         {
-            DateTime weekStart = DateTime.Parse("2026-09-13");
-            DateTime weekEnd = DateTime.Parse("2026-09-19");
+            DateTime weekStart = DateTime.Parse("2026-09-20");
+            DateTime weekEnd = DateTime.Parse("2026-09-26");
             // ----------------------------------------
             var config = new ConfigurationBuilder()
                             .SetBasePath(AppContext.BaseDirectory)
