@@ -13,7 +13,7 @@ namespace AIWeeklyReport
             var sb = new StringBuilder();
             sb.Append(HeadAndCss(data, companyDetails.Title));
             sb.Append("<div class=\"wrap\">\n");
-            sb.Append(Masthead(data, companyDetails.Title,companyDetails.ViewName, companyDetails.Company));
+            sb.Append(Masthead(data, companyDetails.Title,companyDetails.ViewName, companyDetails.CompanyName));
             sb.Append(Tiles(data));
             sb.Append(Lede(data));
             sb.Append(SalesByDaySection(data));
@@ -144,12 +144,12 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
         }
 
         // ---------- sections ----------
-        private static string Masthead(DashboardData d, string title, string viewName, string company)
+        private static string Masthead(DashboardData d, string title, string viewName, string companyName)
         {
             var c = d.Current;
             return $@"<header class=""mast"">
   <div>
-    <div class=""eyebrow"">{company} &middot; Weekly Sales Report</div>
+    <div class=""eyebrow"">{companyName} &middot; Weekly Sales Report</div>
     <h1>{title}</h1>
     <div class=""period"">Week of {c.WeekStart:dddd, MMMM d} &ndash; {c.WeekEnd:dddd, MMMM d, yyyy}</div>
   </div>

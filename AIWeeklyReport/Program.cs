@@ -18,6 +18,16 @@ namespace AIWeeklyReport
             var claudeApiKey = config["Claude:ApiKey"] ?? throw new InvalidOperationException("Claude:ApiKey is missing from appsettings.json");
             var priorWeekStart = weekStart.AddDays(-7);
             var priorWeekEnd = weekEnd.AddDays(-7);
+            DateTime today = DateTime.Today;
+
+            int daysSinceSunday = (int)today.DayOfWeek;
+
+            DateTime lastSunday = today.AddDays(-daysSinceSunday - 7);
+            DateTime lastSaturday = lastSunday.AddDays(6);
+
+            
+
+            // -----------------------------------
 
             var repository = new TicketRepository(connectionString);
             List<CompanyDetails> companies = new List<CompanyDetails>();
