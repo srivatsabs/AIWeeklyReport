@@ -23,6 +23,10 @@ namespace AIWeeklyReport
             sb.Append(TopCustomersAndMoversSection(data));
             sb.Append(JobOrdersSection(data, companyDetails.CompanyName));
             sb.Append(CancelledTicketsSection(data));
+            sb.Append(CorrectedTicketsSection(data));
+            sb.Append(TicketsByTypeSection(data));
+            sb.Append(TicketsByCarrierIdSection(data));
+            sb.Append(TicketsByCreditedSection(data));
             sb.Append(Footer(data, companyDetails.ViewName));
             sb.Append("</div>\n");
             sb.Append(Script(data));
@@ -156,7 +160,7 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
   <div class=""meta"">
     <div>Source <b>{viewName}</b></div>
     <div>Pulled <b>{DateTime.Now:MMM d, yyyy}</b> &middot; compared with <b>{d.Prior.WeekStart:MMM d} &ndash; {d.Prior.WeekEnd:MMM d}</b></div>
-    <div>Active tickets only &middot; {c.CancelledCount} cancelled ticket{(c.CancelledCount == 1 ? "" : "s")} excluded</div>
+    <div>Active tickets only &middot; {c.CancelledCount} void ticket{(c.CancelledCount == 1 ? "" : "s")} excluded</div>
   </div>
 </header>
 ";
@@ -215,11 +219,12 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
 
         private static string SalesByPlantSection(DashboardData d)
         {
+            //<p class=""cap"">This week's sales split by product group, with the prior week's total marked for comparison.</p>
+            //<div class=""legend""><span><i class=""sw"" style=""background:var(--asphalt)""></i>Asphalt</span><span><i class=""sw"" style=""background:var(--rock)""></i>Rock plant</span><span><i class=""sw"" style=""background:var(--fees)""></i>Unclassified</span><span><i class=""sw tick""></i>Prior week total</span></div>
             var sb = new StringBuilder();
             sb.Append(@"<section>
   <div class=""sechead""><h2>Sales by plant</h2></div>
-  <p class=""cap"">This week's sales split by product group, with the prior week's total marked for comparison.</p>
-  <div class=""legend""><span><i class=""sw"" style=""background:var(--asphalt)""></i>Asphalt</span><span><i class=""sw"" style=""background:var(--rock)""></i>Rock plant</span><span><i class=""sw"" style=""background:var(--fees)""></i>Unclassified</span><span><i class=""sw tick""></i>Prior week total</span></div>
+  
   <div class=""chart"" id=""plants""></div>
   <div class=""tblwrap"" style=""margin-top:14px""><table>
     <tr><th>Plant</th><th class=""r"">Sales</th><th class=""r"">Prior week</th><th class=""r"">Change</th><th class=""r"">Tons</th><th class=""r"">Tickets</th><th class=""r"">$ / ton</th></tr>
@@ -267,9 +272,10 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
 ");
             foreach (var pg in c.ProductGroups)
             {
-                var chip = pg.Label == "Asphalt" ? "<span class=\"chip a\">Asphalt</span>"
-                         : pg.Label == "Rock plant" ? "<span class=\"chip r\">Rock plant</span>"
-                         : Html(pg.Label);
+                var chip = Html(pg.Label);
+                //pg.Label == "Asphalt" ? "<span class=\"chip a\">Asphalt</span>"
+                //         : pg.Label == "Rock plant" ? "<span class=\"chip r\">Rock plant</span>"
+                //         : Html(pg.Label);
                 var perTon = pg.Tons == 0 ? "&mdash;" : ("$" + (pg.Sales / pg.Tons).ToString("N2", Culture));
                 sb.Append($@"      <tr><td>{chip}</td><td class=""r"">{pg.Tons:N0}</td><td class=""r"">{Money(pg.Sales)}</td><td class=""r"">{perTon}</td></tr>
 ");
@@ -365,12 +371,12 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
         {
             var c = d.Current;
             var sb = new StringBuilder(@"<section>
-  <div class=""sechead""><h2>Cancelled tickets</h2></div>
-  <p class=""cap"">Tickets with void status C in the period. These are excluded from every figure above.</p>
+  <div class=""sechead""><h2>Void tickets</h2></div>
+  <p class=""cap"">Tickets with void status V in the period. These are excluded from every figure above.</p>
 ");
             if (c.CancelledCount == 0)
             {
-                sb.Append("  <div class=\"note\"><b>No cancelled tickets this week.</b></div>\n</section>\n");
+                sb.Append("  <div class=\"note\"><b>No voided tickets this week.</b></div>\n</section>\n");
                 return sb.ToString();
             }
             sb.Append($@"  <div class=""note""><b>{c.CancelledCount} tickets, {Money(c.CancelledSales)}, {c.CancelledTons:N0} tons.</b></div>
@@ -385,7 +391,106 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
             sb.Append("  </table></div>\n</section>\n");
             return sb.ToString();
         }
+        private static string CorrectedTicketsSection(DashboardData d)
+        {
+            var c = d.Current;
+            var sb = new StringBuilder(@"<section>
+  <div class=""sechead""><h2>Corrected tickets</h2></div>
 
+");
+            if (c.CorrectedCount == 0)
+            {
+                sb.Append("  <div class=\"note\"><b>No corrected tickets this week.</b></div>\n</section>\n");
+                return sb.ToString();
+            }
+            sb.Append($@"  <div class=""note""><b>{c.CorrectedCount} tickets, {Money(c.CorrectedSales)}, {c.CorrectedTons:N0} tons.</b></div>
+  <div class=""tblwrap""><table>
+    <tr><th>Ticket</th><th>Date</th><th>Plant</th><th>Customer</th><th>Material</th><th class=""r"">Tons</th><th class=""r"">Price</th></tr>
+");
+            foreach (var t in c.CorrectedTickets)
+            {
+                sb.Append($@"    <tr><td class=""code"">{Html(t.TicketNo)}</td><td>{t.Date:MMM d}</td><td>{Html(t.Plant)}</td><td>{Html(t.Customer)}</td><td>{Html(t.Material)}</td><td class=""r"">{t.Tons:N2}</td><td class=""r"">{Money(t.Price)}</td></tr>
+");
+            }
+            sb.Append("  </table></div>\n</section>\n");
+            return sb.ToString();
+        }
+
+        private static string TicketsByTypeSection(DashboardData d)
+        {
+            var c = d.Current;
+            var sb = new StringBuilder(@"<section>
+  <div class=""sechead""><h2>Tickets By Type</h2></div>
+ 
+");
+            if (c.TicketByTypeTickets.Count == 0)
+            {
+                sb.Append("  <div class=\"note\"><b>No tickets this week.</b></div>\n</section>\n");
+                return sb.ToString();
+            }
+            //sb.Append($@"  <div class=""note""><b>{c.TicketByTypeTickets.Count} tickets.</b></div>
+ sb.Append($@"
+  <div class=""tblwrap""><table>
+    <tr><th>Ticket Type</th><th></th><th>Count</th></tr>
+");
+            foreach (var t in c.TicketByTypeTickets)
+            {
+                sb.Append($@"    <tr><td class=""code"">{Html(t.TicketType)}</td><td></td><td>{Html(t.TicketByTypeCount.ToString())}</td></tr>
+");
+            }
+            sb.Append("  </table></div>\n</section>\n");
+            return sb.ToString();
+        }
+        private static string TicketsByCarrierIdSection(DashboardData d)
+        {
+            var c = d.Current;
+            var sb = new StringBuilder(@"<section>
+  <div class=""sechead""><h2>Tickets By Carrier Id</h2></div>
+  
+");
+            if (c.TicketByCarrierIdTickets.Count == 0)
+            {
+                sb.Append("  <div class=\"note\"><b>No tickets this week.</b></div>\n</section>\n");
+                return sb.ToString();
+            }
+            //sb.Append($@"  <div class=""note""><b>{c.TicketByCarrierIdTickets.Count} tickets.</b></div>
+            sb.Append($@"
+  <div class=""tblwrap""><table>
+   <tr><th>Carrier</th><th>Ticket</th><th class=""r"">Tons</th><th class=""r"">Sales</th></tr>
+");
+            foreach (var t in c.TicketByCarrierIdTickets)
+            {
+                sb.Append($@"    <tr><td class=""code"">{Html(t.CarrierId.ToString())}</td><td>{t.Tickets.ToString()}</td><td class=""r"">{t.Tons:N2}</td><td class=""r"">{Money(t.Sales)}</td></tr>
+");
+            }
+            sb.Append("  </table></div>\n</section>\n");
+            return sb.ToString();
+        }
+        private static string TicketsByCreditedSection(DashboardData d)
+        {
+            var c = d.Current;
+            var sb = new StringBuilder(@"<section>
+  <div class=""sechead""><h2>Tickets By Credited</h2></div>
+  
+");
+            if (c.TicketByCreditedTickets.Count == 0)
+            {
+                sb.Append("  <div class=\"note\"><b>No tickets this week.</b></div>\n</section>\n");
+                return sb.ToString();
+            }
+            //sb.Append($@"  <div class=""note""><b>{c.TicketByCreditedTickets.Count} tickets.</b></div>
+            sb.Append($@"
+  <div class=""tblwrap""><table>
+   <tr><th>Credited</th><th>Ticket</th><th class=""r"">Tons</th><th class=""r"">Sales</th></tr>
+");
+            foreach (var t in c.TicketByCreditedTickets)
+            {
+                sb.Append($@"    <tr><td>{Html(t.Credited)}</td><td class=""code"">{Html(t.Tickets.ToString())}</td><td class=""r"">{t.Tons:N2}</td><td class=""r"">{Money(t.Sales)}</td></tr>
+");
+            }
+            sb.Append("  </table></div>\n</section>\n");
+            return sb.ToString();
+        }
         private static string Footer(DashboardData d, string viewName)
         {
             var c = d.Current;

@@ -76,6 +76,45 @@ namespace AIWeeklyReport
         public decimal Tons { get; set; }
         public decimal Price { get; set; }
     }
+    public class CorrectedTicketRow
+    {
+        public string TicketNo { get; set; } = "";
+        public DateTime Date { get; set; }
+        public string Plant { get; set; } = "";
+        public string Customer { get; set; } = "";
+        public string Material { get; set; } = "";
+        public decimal Tons { get; set; }
+        public decimal Price { get; set; }
+    }
+    public class TicketByCarrierIdRow
+    {
+        public int Tickets { get; set; } 
+        public DateTime Date { get; set; }
+        public string Plant { get; set; } = "";
+        public string CarrierId { get; set; } = "";
+        
+        public decimal Sales { get; set; }
+        public decimal Tons { get; set; }
+        public decimal Price { get; set; }
+    }
+    public class TicketByCreditedRow
+    {
+        public int Tickets { get; set; }
+        public DateTime Date { get; set; }
+        public string Plant { get; set; } = "";
+        public string Credited { get; set; } = "";
+
+        public decimal Sales { get; set; }
+        public decimal Tons { get; set; }
+        public decimal Price { get; set; }
+    }
+    public class TicketByTypeRow
+    {
+        public string TicketType { get; set; } = "";
+        public int TicketByTypeCount { get; set; } 
+       
+        
+    }
 
     /// <summary>
     /// Everything computed from one week's raw ticket rows. VoidStatus='C' rows are
@@ -96,7 +135,25 @@ namespace AIWeeklyReport
         public decimal CancelledSales { get; set; }
         public decimal CancelledTons { get; set; }
         public List<CancelledTicketRow> CancelledTickets { get; set; } = new();
+        public int CorrectedCount { get; set; }
+        public decimal CorrectedSales { get; set; }
+        public decimal CorrectedTons { get; set; }
+        public List<CorrectedTicketRow> CorrectedTickets { get; set; } = new();
 
+        public int TicketByTypeCount { get; set; }
+        public decimal TicketByTypeSales { get; set; }
+        public decimal TicketByTypeTons { get; set; }
+        public List<TicketByTypeRow> TicketByTypeTickets { get; set; } = new();
+
+        public int TicketByCarrierIdCount { get; set; }
+        public decimal TicketByCarrierIdSales { get; set; }
+        public decimal TicketByCarrierIdTons { get; set; }
+        public List<TicketByCarrierIdRow> TicketByCarrierIdTickets { get; set; } = new();
+
+        public int TicketByCreditedCount { get; set; }
+        public decimal TicketByCreditedSales { get; set; }
+        public decimal TicketByCreditedTons { get; set; }
+        public List<TicketByCreditedRow> TicketByCreditedTickets { get; set; } = new();
         public decimal CustomerTaxCollected { get; set; }
 
         public List<DayAgg> Days { get; set; } = new();

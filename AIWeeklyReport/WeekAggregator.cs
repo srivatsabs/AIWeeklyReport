@@ -16,6 +16,7 @@ namespace AIWeeklyReport
         private readonly string SaleTypeInventory;
         private readonly string SaleTypeJob;
         private readonly string CustomerId;
+        private readonly string Corrected;
         public WeekAggregator(CompanyDetails companyDetails)
        
         {
@@ -26,6 +27,7 @@ namespace AIWeeklyReport
             SaleTypeInventory = companyDetails.SaleTypeInventory;
             SaleTypeJob = companyDetails.SaleTypeJob;
             CustomerId = companyDetails.CustomerId;
+            Corrected= companyDetails.Corrected;
         }
         /// <summary>
         /// Environmental fee line item. Fees are real revenue (kept in every Sales figure)
@@ -43,7 +45,7 @@ namespace AIWeeklyReport
 
             foreach (var t in rawTickets)
             {
-                if (t.VoidStatus != "A" && t.VoidStatus != VoidCancelled)
+                if (t.VoidStatus != "A" && t.VoidStatus != VoidCancelled && t.VoidStatus != Corrected)
                     agg.DataQualityFlags.Add($"Ticket {t.TicketNo} has unrecognized VoidStatus='{t.VoidStatus}'.");
 
                 if (t.SaleType == SaleTypeJob && t.CustomerID != CustomerId)
@@ -53,6 +55,7 @@ namespace AIWeeklyReport
             var cancelled = rawTickets.Where(t => t.VoidStatus == VoidCancelled).ToList();
             var active = rawTickets.Where(t => t.VoidStatus != VoidCancelled).ToList();
 
+            var corrected = rawTickets.Where(t => t.VoidStatus == Corrected).ToList();
             // --- Cancelled tickets ---
             agg.CancelledCount = cancelled.Select(t => t.TicketNo).Distinct().Count();
             agg.CancelledSales = cancelled.Sum(t => t.Price);
@@ -70,6 +73,86 @@ namespace AIWeeklyReport
                 })
                 .OrderByDescending(c => c.Price)
                 .ToList();
+
+            // --- Corrected tickets ---
+            agg.CorrectedCount = corrected.Select(t => t.TicketNo).Distinct().Count();
+            agg.CorrectedSales = corrected.Sum(t => t.Price);
+            agg.CorrectedTons = corrected.Sum(t => t.Qty);
+            agg.CorrectedTickets = corrected
+                .Select(t => new CorrectedTicketRow
+                {
+                    TicketNo = t.TicketNo,
+                    Date = t.TicketDate.Date,
+                    Plant = t.LocationDescription,
+                    Customer = t.CustomerDescription,
+                    Material = t.Description,
+                    Tons = t.Qty,
+                    Price = t.Price
+                })
+                .OrderByDescending(c => c.Price)
+                .ToList();
+
+            // --- Ticket by Type tickets ---
+          
+            var ticketByType = active
+     .GroupBy(t => t.TicketType)
+     .ToList();
+            Console.WriteLine($"rawTickets: {rawTickets.Count}");
+            Console.WriteLine($"groups: {ticketByType.Count}");
+
+            agg.TicketByTypeTickets = ticketByType
+                .Select(g => new TicketByTypeRow
+                {
+                    TicketType = g.Key == "M" ? "Manual Tickets":"Scale Tickets",
+
+                    TicketByTypeCount = g
+                        .Select(t => t.TicketNo)
+                        .Distinct()
+                        .Count()
+                    
+                })
+                .ToList();
+
+            
+
+            // --- Ticket by CarriedId  ---
+            var TicketByCarrierId = active
+     .GroupBy(t => t.CarrierId)
+     .ToList();
+            agg.TicketByCarrierIdTickets = TicketByCarrierId
+    .Select(g => new TicketByCarrierIdRow
+    {
+        
+             CarrierId = g.Key,
+           
+             Tickets = g.Select(t => t.TicketNo).Distinct().Count(),
+             Tons = g.Where(t => !IsFeeLine(t)).Sum(t => t.Qty),
+             Sales = g.Sum(t => t.Price),
+             
+        
+    })
+    .ToList();
+
+
+            // --- Ticket by Credited  ---
+            var TicketByCredited = active
+     .GroupBy(t => t.Credited)
+     .ToList();
+
+            agg.TicketByCreditedTickets = TicketByCredited
+     .Select(g => new TicketByCreditedRow
+     {
+
+         Credited = g.Key == "N"? "Not credited":g.Key 
+         ,
+
+         Tickets = g.Select(t => t.TicketNo).Distinct().Count(),
+         Tons = g.Where(t => !IsFeeLine(t)).Sum(t => t.Qty),
+         Sales = g.Sum(t => t.Price),
+
+
+     })
+     .ToList();
 
             // --- Headline totals (active rows, all sale types) ---
             // Sales include fee revenue; Tons exclude fee lines (a fee isn't a quantity of material).
@@ -120,11 +203,17 @@ namespace AIWeeklyReport
                 .ToList();
 
             // --- Product group breakdown ---
+            //agg.ProductGroups = active
+            //    .GroupBy(t => IsFeeLine(t) ? "Fees"
+            //                : t.GroupID == GroupAsphalt ? "Asphalt"
+            //                : t.GroupID == GroupRockPlant ? "Rock plant"    : "Unclassified material");
+
             agg.ProductGroups = active
-                .GroupBy(t => IsFeeLine(t) ? "Fees"
-                            : t.GroupID == GroupAsphalt ? "Asphalt"
-                            : t.GroupID == GroupRockPlant ? "Rock plant"
-                            : "Unclassified material")
+    .GroupBy(t =>
+        IsFeeLine(t) ? "Fees" :
+        t.GroupID == GroupAsphalt ? "Asphalt" :
+        t.GroupID == GroupRockPlant ? "Rock plant" :
+        t.GroupID)
                 .Select(g => new ProductGroupAgg
                 {
                     Label = g.Key,

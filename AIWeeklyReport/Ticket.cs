@@ -40,5 +40,9 @@ namespace AIWeeklyReport
         /// <summary>"Customer" = external sale, "Inventory" = internal transfer, "Job" = GRI-Modesto intercompany.</summary>
         public string SaleType { get; set; } = "";
         public string UniqueID { get; set; } = "";
+        public string TicketType { get; set; } = "";
+        public string CarrierId { get; set; } = "";
+        public string  Credited{ get; set; } = "";
+
     }
 }
