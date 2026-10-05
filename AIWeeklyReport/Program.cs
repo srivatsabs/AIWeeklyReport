@@ -39,8 +39,8 @@ namespace AIWeeklyReport
             companies = repository.GetCompanyDetails();
             foreach (var company in companies)
             {
-                if (company.CompanyName.Equals("VSS Emultech"))
-                {
+                //if (company.CompanyName.Equals("VSS Emultech"))
+                //{
                     var currentRaw = repository.GetTickets(weekStart, weekEnd, company.ViewFields);
                     var priorRaw = repository.GetTickets(priorWeekStart, priorWeekEnd, company.ViewFields);
 
@@ -103,7 +103,7 @@ namespace AIWeeklyReport
                     {
                         Console.WriteLine("SharePoint upload skipped — SHAREPOINT_* environment variables not fully set.");
                     }
-                }
+               // }
             }
         }
 
