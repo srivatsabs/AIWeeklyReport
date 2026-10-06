@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.ExtendedProperties;
 using System.Globalization;
 
 namespace AIWeeklyReport
@@ -8,33 +9,54 @@ namespace AIWeeklyReport
         private const int TopMoverCount = 12;
         private const int TopProductCount = 12;
 
-        public DashboardData Build(WeekAggregate current, WeekAggregate prior)
+        public DashboardData Build(WeekAggregate current, WeekAggregate prior, string companyName)
         {
             var data = new DashboardData { Current = current, Prior = prior };
 
-            data.Tiles = new List<TileRow>
+            
+           
+            if (companyName.Equals("GRI"))
+            {
+                data.TilesAsphalt = new List<TileRow>
+            {
+                Tile("Sales (ticket price)", current.TotalSalesByAsphalt, prior.TotalTicketsByAsphalt, MoneyCompact),
+                Tile("Tons shipped", current.TotalTonsByAsphalt, prior.TotalTonsByAsphalt, n => Math.Round(n).ToString("N0", CultureInfo.InvariantCulture)),
+                Tile("Tickets", current.TotalTicketsByAsphalt, prior.TotalTicketsByAsphalt, n => Math.Round(n).ToString("N0", CultureInfo.InvariantCulture)),
+                Tile("Sales per ton", current.SalesPerTonByAsphalt, prior.SalesPerTonByAsphalt, n => "$" + n.ToString("N2", CultureInfo.InvariantCulture))
+            };
+                data.TilesRockPlant = new List<TileRow>
+            {
+                Tile("Sales (ticket price)", current.TotalSalesByRockplant, prior.TotalSalesByRockplant, MoneyCompact),
+                Tile("Tons shipped", current.TotalTonsByRockplant, prior.TotalTonsByRockplant, n => Math.Round(n).ToString("N0", CultureInfo.InvariantCulture)),
+                Tile("Tickets", current.TotalTicketsByRockplant, prior.TotalTicketsByRockplant, n => Math.Round(n).ToString("N0", CultureInfo.InvariantCulture)),
+                Tile("Sales per ton", current.SalesPerTonByRockplant, prior.SalesPerTonByRockplant, n => "$" + n.ToString("N2", CultureInfo.InvariantCulture))
+            };
+            }
+            else
+            {
+                data.Tiles = new List<TileRow>
             {
                 Tile("Sales (ticket price)", current.TotalSales, prior.TotalSales, MoneyCompact),
                 Tile("Tons shipped", current.TotalTons, prior.TotalTons, n => Math.Round(n).ToString("N0", CultureInfo.InvariantCulture)),
                 Tile("Tickets", current.TotalTickets, prior.TotalTickets, n => Math.Round(n).ToString("N0", CultureInfo.InvariantCulture)),
                 Tile("Sales per ton", current.SalesPerTon, prior.SalesPerTon, n => "$" + n.ToString("N2", CultureInfo.InvariantCulture))
             };
-
-            // --- Days: match current[i] to prior[i] by position (both run Sun..Sat) ---
-            for (int i = 0; i < current.Days.Count; i++)
-            {
-                var c = current.Days[i];
-                var p = i < prior.Days.Count ? prior.Days[i] : new DayAgg();
-                data.Days.Add(new DayRow
-                {
-                    Label = c.Date.ToString("ddd MMM d", CultureInfo.InvariantCulture),
-                    Tickets = c.Tickets,
-                    Tons = c.Tons,
-                    Sales = c.Sales,
-                    PriorSales = p.Sales,
-                    ChangePercent = PercentChange(c.Sales, p.Sales)
-                });
             }
+                // --- Days: match current[i] to prior[i] by position (both run Sun..Sat) ---
+                for (int i = 0; i < current.Days.Count; i++)
+                {
+                    var c = current.Days[i];
+                    var p = i < prior.Days.Count ? prior.Days[i] : new DayAgg();
+                    data.Days.Add(new DayRow
+                    {
+                        Label = c.Date.ToString("ddd MMM d", CultureInfo.InvariantCulture),
+                        Tickets = c.Tickets,
+                        Tons = c.Tons,
+                        Sales = c.Sales,
+                        PriorSales = p.Sales,
+                        ChangePercent = PercentChange(c.Sales, p.Sales)
+                    });
+                }
 
             // --- Plants: match by name, prior defaults to 0 if plant didn't appear last week ---
             var priorPlants = prior.Plants.ToDictionary(p => p.Plant, p => p.TotalSales);

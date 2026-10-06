@@ -14,10 +14,20 @@ namespace AIWeeklyReport
             sb.Append(HeadAndCss(data, companyDetails.Title));
             sb.Append("<div class=\"wrap\">\n");
             sb.Append(Masthead(data, companyDetails.Title,companyDetails.ViewName, companyDetails.CompanyName));
-            sb.Append(Tiles(data));
-            sb.Append(Lede(data));
+            if (companyDetails.CompanyName.Equals("GRI"))
+            {
+                sb.Append(TilesAsphalt(data));
+                sb.Append(TilesRockPlant(data));
+                
+            }
+            else
+            {
+                sb.Append(Tiles(data));
+            }
+
+                sb.Append(Lede(data));
             sb.Append(SalesByDaySection(data));
-            sb.Append(SalesByPlantSection(data));
+            sb.Append(SalesByPlantSection(data,companyDetails.CompanyName));
             sb.Append(SaleTypeAndProductGroupSection(data, companyDetails.CompanyName));
             sb.Append(TopProductsSection(data));
             sb.Append(TopCustomersAndMoversSection(data));
@@ -25,8 +35,8 @@ namespace AIWeeklyReport
             sb.Append(CancelledTicketsSection(data));
             sb.Append(CorrectedTicketsSection(data));
             sb.Append(TicketsByTypeSection(data));
-            sb.Append(TicketsByCarrierIdSection(data));
-            sb.Append(TicketsByCreditedSection(data));
+                sb.Append(TicketsByCarrierIdSection(data));
+                sb.Append(TicketsByCreditedSection(data));
             sb.Append(Footer(data, companyDetails.ViewName));
             sb.Append("</div>\n");
             sb.Append(Script(data));
@@ -181,7 +191,37 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
             sb.Append("</div>\n");
             return sb.ToString();
         }
-
+        
+        private static string TilesAsphalt(DashboardData d)
+        {
+            var sb = new StringBuilder(" <div class=\"sechead\"><h2>Asphalt</h2></div><div class=\"tiles\">\n");
+            foreach (var t in d.TilesAsphalt)
+            {
+                sb.Append($@"  <div class=""tile"">
+    <div class=""lab"">{t.Label}</div>
+    <div class=""val num"">{t.DisplayValue}</div>
+    <div class=""dl"">{ChangeBadge(t.ChangePercent)} vs {t.PriorDisplayValue} prior week</div>
+  </div>
+");
+            }
+            sb.Append("</div>\n");
+            return sb.ToString();
+        }
+        private static string TilesRockPlant(DashboardData d)
+        {
+            var sb = new StringBuilder(" <div class=\"sechead\"><h2>RockPlant</h2></div><div class=\"tiles\">\n");
+            foreach (var t in d.TilesRockPlant)
+            {
+                sb.Append($@"  <div class=""tile"">
+    <div class=""lab"">{t.Label}</div>
+    <div class=""val num"">{t.DisplayValue}</div>
+    <div class=""dl"">{ChangeBadge(t.ChangePercent)} vs {t.PriorDisplayValue} prior week</div>
+  </div>
+");
+            }
+            sb.Append("</div>\n");
+            return sb.ToString();
+        }
         private static string Lede(DashboardData d)
         {
             var sb = new StringBuilder("<div class=\"lede\">\n");
@@ -217,22 +257,26 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
             return sb.ToString();
         }
 
-        private static string SalesByPlantSection(DashboardData d)
+        private static string SalesByPlantSection(DashboardData d, string companyName)
         {
-            //<p class=""cap"">This week's sales split by product group, with the prior week's total marked for comparison.</p>
-            //<div class=""legend""><span><i class=""sw"" style=""background:var(--asphalt)""></i>Asphalt</span><span><i class=""sw"" style=""background:var(--rock)""></i>Rock plant</span><span><i class=""sw"" style=""background:var(--fees)""></i>Unclassified</span><span><i class=""sw tick""></i>Prior week total</span></div>
+           
             var sb = new StringBuilder();
-            sb.Append(@"<section>
-  <div class=""sechead""><h2>Sales by plant</h2></div>
-  
-  <div class=""chart"" id=""plants""></div>
+            sb.Append(@"<section> <div class=""sechead""><h2>Sales by plant</h2></div>");
+            if (companyName.Equals("GRI"))
+            {
+                sb.Append(@"
+  <p class=""cap"">This week's sales split by product group, with the prior week's total marked for comparison.</p>
+                <div class=""legend""><span><i class=""sw"" style=""background:var(--asphalt)""></i>Asphalt</span><span><i class=""sw"" style=""background:var(--rock)""></i>Rock plant</span><span><i class=""sw"" style=""background:var(--fees)""></i>Unclassified</span><span><i class=""sw tick""></i>Prior week total</span></div>");
+            }
+            
+  sb.Append(@"<div class=""chart"" id=""plants""></div>
   <div class=""tblwrap"" style=""margin-top:14px""><table>
     <tr><th>Plant</th><th class=""r"">Sales</th><th class=""r"">Prior week</th><th class=""r"">Change</th><th class=""r"">Tons</th><th class=""r"">Tickets</th><th class=""r"">$ / ton</th></tr>
 ");
             foreach (var p in d.Plants)
             {
                 var sub = $"Asphalt {Money(p.AsphaltSales)}, rock {Money(p.RockSales)}" + (p.OtherSales > 0 ? $", other {Money(p.OtherSales)}" : "");
-                sb.Append($@"    <tr><td>{Html(p.Plant)} <span class=""sub"">{sub}</span></td><td class=""r"">{Money(p.TotalSales)}</td><td class=""r"">{Money(p.PriorTotal)}</td><td class=""r"">{ChangeText(p.ChangePercent)}</td><td class=""r"">{p.Tons:N0}</td><td class=""r"">{p.Tickets:N0}</td><td class=""r"">${p.DollarsPerTon:N2}</td></tr>
+                sb.Append($@"    <tr><td>{Html(p.Plant)} <span class=""sub"">{sub}</span></td><td class=""r"">{Money(p.TotalSales)}</td><td class=""r"">{Money(p.PriorTotal)}</td><td class=""r"">{ChangeText(p.ChangePercent)}</td><td class=""r"">{p.Tons:N0}</td><td class=""r"">{p.Tickets:N0}</td><td class=""r"">${p.DollarsPerTon:N2}</td></tr>              
 ");
             }
             var weekChange = d.Prior.TotalSales == 0 ? (decimal?)null : Math.Round((d.Current.TotalSales - d.Prior.TotalSales) / d.Prior.TotalSales * 100, 1);
@@ -431,11 +475,11 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
             //sb.Append($@"  <div class=""note""><b>{c.TicketByTypeTickets.Count} tickets.</b></div>
  sb.Append($@"
   <div class=""tblwrap""><table>
-    <tr><th>Ticket Type</th><th></th><th>Count</th></tr>
+    <tr><th>Ticket Type</th><th>Count</th><th class=""r"">Tons</th><th class=""r"">Sales</th></tr>
 ");
             foreach (var t in c.TicketByTypeTickets)
             {
-                sb.Append($@"    <tr><td class=""code"">{Html(t.TicketType)}</td><td></td><td>{Html(t.TicketByTypeCount.ToString())}</td></tr>
+                sb.Append($@"    <tr><td class=""code"">{Html(t.TicketType)}</td><td>{Html(t.TicketByTypeCount.ToString())}</td><td class=""r"">{t.Tons:N2}</td><td class=""r"">{Money(t.Sales)}</td></tr>
 ");
             }
             sb.Append("  </table></div>\n</section>\n");
@@ -601,20 +645,21 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
       var tot = rw.a + rw.r + rw.o;
       svg.appendChild(el('text', {{x: x(tot) + 8, y: yy + bh/2 + 4, 'font-size': 12, 'font-weight': 600, fill: 'var(--ink)'}}, fmtK(tot)));
       if (rw.p > 0) svg.appendChild(el('line', {{x1: x(rw.p), x2: x(rw.p), y1: yy - 4, y2: yy + bh + 4, stroke: 'var(--ink)', 'stroke-width': 2}}));
-      var hit = el('rect', {{x: labW, y: padT + i*rowH, width: plotW + padR, height: rowH, fill: 'transparent'}});
-      hit.addEventListener('mousemove', function(ev){{
-        var rr = host.getBoundingClientRect();
-        var chg = rw.p > 0 ? Math.round((tot - rw.p)/rw.p*100) : null;
-        showTip(t, host, ev.clientX - rr.left, ev.clientY - rr.top,
-          '<b>' + rw.n + '</b><br><span class=""k"">Asphalt</span> ' + fmt$(rw.a) + '<br><span class=""k"">Rock plant</span> ' + fmt$(rw.r) + (rw.o > 0 ? '<br><span class=""k"">Other</span> ' + fmt$(rw.o) : '') + '<br><span class=""k"">Total</span> ' + fmt$(tot) + (chg === null ? '' : ' (' + (chg >= 0 ? '+' : '') + chg + '% vs prior ' + fmt$(rw.p) + ')'));
-      }});
-      hit.addEventListener('mouseleave', function(){{ t.style.opacity = 0; }});
-      svg.appendChild(hit);
+      
     }});
   }})();
 }})();
+
 </script>
-";
+";//var hit = el('rect', {{x: labW, y: padT + i*rowH, width: plotW + padR, height: rowH, fill: 'transparent'}});
+  //hit.addEventListener('mousemove', function(ev){{
+  //  var rr = host.getBoundingClientRect();
+  //  var chg = rw.p > 0 ? Math.round((tot - rw.p)/rw.p*100) : null;
+  //  showTip(t, host, ev.clientX - rr.left, ev.clientY - rr.top,
+  //    '<b>' + rw.n + '</b><br><span class=""k"">Asphalt</span> ' + fmt$(rw.a) + '<br><span class=""k"">Rock plant</span> ' + fmt$(rw.r) + (rw.o > 0 ? '<br><span class=""k"">Other</span> ' + fmt$(rw.o) : '') + '<br><span class=""k"">Total</span> ' + fmt$(tot) + (chg === null ? '' : ' (' + (chg >= 0 ? '+' : '') + chg + '% vs prior ' + fmt$(rw.p) + ')'));
+  //}});
+  //hit.addEventListener('mouseleave', function(){{ t.style.opacity = 0; }});
+  //svg.appendChild(hit);
         }
 
         // ---------- helpers ----------

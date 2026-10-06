@@ -46,6 +46,8 @@ namespace AIWeeklyReport
         public WeekAggregate Prior { get; set; } = null!;
 
         public List<TileRow> Tiles { get; set; } = new();
+        public List<TileRow> TilesAsphalt { get; set; } = new();
+        public List<TileRow> TilesRockPlant { get; set; } = new();
         public List<DayRow> Days { get; set; } = new();
         public List<PlantRow> Plants { get; set; } = new();
         public List<MoverRow> Movers { get; set; } = new();

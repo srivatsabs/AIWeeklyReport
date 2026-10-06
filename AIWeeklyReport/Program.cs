@@ -48,7 +48,7 @@ namespace AIWeeklyReport
                     var current = aggregator.Build(currentRaw, weekStart, weekEnd, company.Location);
                     var prior = aggregator.Build(priorRaw, priorWeekStart, priorWeekEnd, company.Location);
 
-                    var dashboard = new DashboardBuilder().Build(current, prior);
+                    var dashboard = new DashboardBuilder().Build(current, prior, company.CompanyName);
                     // dashboard.LedeParagraphs is already set to the rule-based summary here —
                     // it's what ships if the AI call below is skipped or fails.
 
@@ -113,16 +113,16 @@ namespace AIWeeklyReport
             try
             {
 
-                string toAddress = config["Email:ToEmail"]?? throw new InvalidOperationException("Email:ToEmail is missing from appsettings.json");
+                //string toAddress = config["Email:ToEmail"]?? throw new InvalidOperationException("Email:ToEmail is missing from appsettings.json");
                 string bodyMessage = config["Email:BodyMessage"] ?? throw new InvalidOperationException("Email:BodyMessage is missing from appsettings.json");
-                bodyMessage = bodyMessage.Replace("{url}", webUrl);
+                bodyMessage = bodyMessage.Replace("{url}", $"<a href=\"{webUrl}\">Click Here to open the link</a>");
                 bodyMessage = bodyMessage.Replace("{company}", company.Company);
                 bodyMessage = bodyMessage.Replace("{week}", week);
                 string subject = config["Email:Subject"]?? throw new InvalidOperationException("Email:Subject is missing from appsettings.json");
                 subject = subject.Replace("{company}", company.Company);
                 subject = subject.Replace("{week}", week);
                 //string footerMessage = Configuration.GetSection("AppSettings:ManagerMailFooterMessage").Value.ToString();
-                string[] toAddressList = toAddress.Split(';');
+                string[] toAddressList = company.EmailTo.Split(';'); //toAddress.Split(';');
                 MailMessage newMessage = new MailMessage();
                 SmtpClient mailService = new SmtpClient();
                 newMessage.From = new MailAddress(config["Email:FromAddress"] ?? throw new InvalidOperationException("Email:FromAddress is missing from appsettings.json"));
@@ -132,14 +132,14 @@ namespace AIWeeklyReport
                     newMessage.To.Add(to);
                 }
                 //Add BCC in the emails start
-                string bccAddress = config["Email:BCCEmail"] ?? throw new InvalidOperationException("Email:BCCEmail is missing from appsettings.json");
-
-                if (!string.IsNullOrEmpty(bccAddress))
+                //string ccAddress = config["Email:BCCEmail"] ?? throw new InvalidOperationException("Email:BCCEmail is missing from appsettings.json");
+                string ccAddress = company.EmailCC;
+                if (!string.IsNullOrEmpty(ccAddress))
                 {
-                    string[] bccAddressList = bccAddress.Split(';');
-                    foreach (var bcc in bccAddressList)
+                    string[] ccAddressList = ccAddress.Split(';');
+                    foreach (var cc in ccAddressList)
                     {
-                        newMessage.Bcc.Add(bcc);
+                        newMessage.CC.Add(cc);
                     }
                 }
 

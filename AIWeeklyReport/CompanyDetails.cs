@@ -18,5 +18,7 @@
         public string Location {  get; set; }
         public string FolderPath { get; set; }
         public string Corrected { get; set; } 
+        public string EmailTo { get; set; }
+        public string EmailCC { get; set; }
     }
 }

@@ -108,8 +108,9 @@ namespace AIWeeklyReport
                     TicketByTypeCount = g
                         .Select(t => t.TicketNo)
                         .Distinct()
-                        .Count()
-                    
+                        .Count(),
+                    Tons = g.Where(t => !IsFeeLine(t)).Sum(t => t.Qty),
+                    Sales = g.Sum(t => t.Price),
                 })
                 .ToList();
 
@@ -159,6 +160,16 @@ namespace AIWeeklyReport
             agg.TotalTickets = active.Select(t => t.TicketNo).Distinct().Count();
             agg.TotalTons = active.Where(t => !IsFeeLine(t)).Sum(t => t.Qty);
             agg.TotalSales = active.Sum(t => t.Price);
+
+
+            //only for GRI 
+            agg.TotalTicketsByAsphalt = active.Where(t => t.GroupID == GroupAsphalt).Select(t => t.TicketNo).Distinct().Count();
+            agg.TotalTonsByAsphalt = active.Where(t => t.GroupID == GroupAsphalt).Where(t => !IsFeeLine(t)).Sum(t => t.Qty);
+            agg.TotalSalesByAsphalt = active.Where(t => t.GroupID == GroupAsphalt).Sum(t => t.Price);
+            agg.TotalTicketsByRockplant = active.Where(t => t.GroupID == GroupRockPlant).Select(t => t.TicketNo).Distinct().Count();
+            agg.TotalTonsByRockplant = active.Where(t => t.GroupID == GroupRockPlant).Where(t => !IsFeeLine(t)).Sum(t => t.Qty);
+            agg.TotalSalesByRockplant = active.Where(t => t.GroupID == GroupRockPlant).Sum(t => t.Price);
+
             agg.CustomerTaxCollected = active.Where(t => t.SaleType == SaleTypeCustomer).Sum(t => t.TaxAmount);
 
             // --- Sales by day (Sun..Sat from weekStart) ---
@@ -213,7 +224,7 @@ namespace AIWeeklyReport
         IsFeeLine(t) ? "Fees" :
         t.GroupID == GroupAsphalt ? "Asphalt" :
         t.GroupID == GroupRockPlant ? "Rock plant" :
-        t.GroupID)
+        t.GroupDesc)
                 .Select(g => new ProductGroupAgg
                 {
                     Label = g.Key,
@@ -225,7 +236,7 @@ namespace AIWeeklyReport
 
             // --- Top products ---
             agg.Products = active
-                .GroupBy(t => new { t.ProductID, t.Description, t.GroupID })
+                .GroupBy(t => new { t.ProductID, t.Description, t.GroupID,t.GroupDesc })
                 .Select(g => new ProductAgg
                 {
                     ProductId = g.Key.ProductID,
@@ -233,7 +244,8 @@ namespace AIWeeklyReport
                     GroupId = g.Key.GroupID,
                     Lines = g.Count(),
                     Tons = g.Sum(t => t.Qty),
-                    Sales = g.Sum(t => t.Price)
+                    Sales = g.Sum(t => t.Price),
+                    GroupDesc= g.Key.GroupDesc
                 })
                 .OrderByDescending(p => p.Sales)
                 .ToList();

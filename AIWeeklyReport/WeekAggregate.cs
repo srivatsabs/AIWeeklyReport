@@ -42,6 +42,7 @@ namespace AIWeeklyReport
         public int Lines { get; set; }
         public decimal Tons { get; set; }
         public decimal Sales { get; set; }
+        public string GroupDesc { get; set; } = "";
     }
 
     public class CustomerAgg
@@ -111,9 +112,11 @@ namespace AIWeeklyReport
     public class TicketByTypeRow
     {
         public string TicketType { get; set; } = "";
-        public int TicketByTypeCount { get; set; } 
-       
-        
+        public int TicketByTypeCount { get; set; }
+        public decimal Sales { get; set; }
+        public decimal Tons { get; set; }
+        public decimal Price { get; set; }
+
     }
 
     /// <summary>
@@ -130,6 +133,18 @@ namespace AIWeeklyReport
         public decimal TotalTons { get; set; }
         public decimal TotalSales { get; set; }
         public decimal SalesPerTon => TotalTons == 0 ? 0 : TotalSales / TotalTons;
+
+
+        //only for GRI
+
+        public int TotalTicketsByAsphalt { get; set; }
+        public decimal TotalTonsByAsphalt { get; set; }
+        public decimal TotalSalesByAsphalt { get; set; }
+        public decimal SalesPerTonByAsphalt => TotalTonsByAsphalt == 0 ? 0 : TotalSalesByAsphalt / TotalTonsByAsphalt;
+        public int TotalTicketsByRockplant { get; set; }
+        public decimal TotalTonsByRockplant { get; set; }
+        public decimal TotalSalesByRockplant { get; set; }
+        public decimal SalesPerTonByRockplant => TotalTonsByRockplant == 0 ? 0 : TotalSalesByRockplant / TotalTonsByRockplant;
 
         public int CancelledCount { get; set; }
         public decimal CancelledSales { get; set; }

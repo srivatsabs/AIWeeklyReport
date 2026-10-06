@@ -43,6 +43,7 @@ namespace AIWeeklyReport
         public string TicketType { get; set; } = "";
         public string CarrierId { get; set; } = "";
         public string  Credited{ get; set; } = "";
+        public string GroupDesc { get; set; } = "";
 
     }
 }

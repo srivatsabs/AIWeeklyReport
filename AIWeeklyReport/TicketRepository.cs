@@ -61,6 +61,8 @@ namespace AIWeeklyReport
                    TicketType = reader["TicketType"]?.ToString() ?? "",
                     CarrierId = reader["CarrierID"]?.ToString() ?? "",
                     Credited = reader["Credited"]?.ToString() ?? "",
+                    GroupDesc = reader["GroupDesc"]?.ToString() ?? "",
+
                 });
             }
 
@@ -108,6 +110,8 @@ namespace AIWeeklyReport
                     Company = reader["Company"]?.ToString() ?? "",
                     FolderPath = reader["FolderPath"]?.ToString() ?? "",
                      Corrected = reader["Corrected"]?.ToString() ?? "",
+                    EmailTo = reader["EmailTo"]?.ToString() ?? "",
+                    EmailCC = reader["EmailCC"]?.ToString() ?? "",
                 });
             }
 
