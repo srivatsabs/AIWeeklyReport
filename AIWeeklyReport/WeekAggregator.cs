@@ -136,7 +136,7 @@ namespace AIWeeklyReport
 
 
             // --- Ticket by Credited  ---
-            var TicketByCredited = active
+            var TicketByCredited = active.Where(x => x.Credited == "C")
      .GroupBy(t => t.Credited)
      .ToList();
 
