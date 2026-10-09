@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.ExtendedProperties;
 using System.Globalization;
+using System.Net;
 
 namespace AIWeeklyReport
 {
@@ -19,7 +20,7 @@ namespace AIWeeklyReport
             {
                 data.TilesAsphalt = new List<TileRow>
             {
-                Tile("Sales (ticket price)", current.TotalSalesByAsphalt, prior.TotalTicketsByAsphalt, MoneyCompact),
+                Tile("Sales (ticket price)", current.TotalSalesByAsphalt, prior.TotalSalesByAsphalt, MoneyCompact),
                 Tile("Tons shipped", current.TotalTonsByAsphalt, prior.TotalTonsByAsphalt, n => Math.Round(n).ToString("N0", CultureInfo.InvariantCulture)),
                 Tile("Tickets", current.TotalTicketsByAsphalt, prior.TotalTicketsByAsphalt, n => Math.Round(n).ToString("N0", CultureInfo.InvariantCulture)),
                 Tile("Sales per ton", current.SalesPerTonByAsphalt, prior.SalesPerTonByAsphalt, n => "$" + n.ToString("N2", CultureInfo.InvariantCulture))
@@ -66,7 +67,7 @@ namespace AIWeeklyReport
                     var priorTotal = priorPlants.TryGetValue(c.Plant, out var pv) ? pv : 0m;
                     return new PlantRow
                     {
-                        Plant = c.Plant,
+                        Plant = WebUtility.HtmlDecode(c.Plant),
                         AsphaltSales = c.AsphaltSales,
                         RockSales = c.RockSales,
                         OtherSales = c.OtherSales,

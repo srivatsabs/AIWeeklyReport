@@ -116,6 +116,21 @@ namespace AIWeeklyReport
         public decimal Sales { get; set; }
         public decimal Tons { get; set; }
         public decimal Price { get; set; }
+    }
+    public class TicketByTypeRowGRI
+    {
+        //public string TicketType { get; set; } = "";
+        //public int TicketByTypeCount { get; set; }
+        //public decimal Sales { get; set; }
+        //public decimal Tons { get; set; }
+        //public decimal Price { get; set; }
+        public string TicketNo { get; set; } = "";
+        public DateTime Date { get; set; }
+        public string Plant { get; set; } = "";
+        public string Customer { get; set; } = "";
+        public string Material { get; set; } = "";
+        public decimal Tons { get; set; }
+        public decimal Price { get; set; }
 
     }
 
@@ -159,7 +174,7 @@ namespace AIWeeklyReport
         public decimal TicketByTypeSales { get; set; }
         public decimal TicketByTypeTons { get; set; }
         public List<TicketByTypeRow> TicketByTypeTickets { get; set; } = new();
-
+        public List<TicketByTypeRowGRI> TicketByTypeTicketsGRI { get; set; } = new();
         public int TicketByCarrierIdCount { get; set; }
         public decimal TicketByCarrierIdSales { get; set; }
         public decimal TicketByCarrierIdTons { get; set; }

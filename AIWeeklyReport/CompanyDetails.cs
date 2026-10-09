@@ -20,5 +20,6 @@
         public string Corrected { get; set; } 
         public string EmailTo { get; set; }
         public string EmailCC { get; set; }
+        public string GroupRecycled { get; set; }
     }
 }

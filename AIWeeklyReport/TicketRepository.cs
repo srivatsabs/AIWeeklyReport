@@ -62,7 +62,7 @@ namespace AIWeeklyReport
                     CarrierId = reader["CarrierID"]?.ToString() ?? "",
                     Credited = reader["Credited"]?.ToString() ?? "",
                     GroupDesc = reader["GroupDesc"]?.ToString() ?? "",
-
+                    
                 });
             }
 
@@ -112,6 +112,7 @@ namespace AIWeeklyReport
                      Corrected = reader["Corrected"]?.ToString() ?? "",
                     EmailTo = reader["EmailTo"]?.ToString() ?? "",
                     EmailCC = reader["EmailCC"]?.ToString() ?? "",
+                    GroupRecycled = reader["GroupRecycled"]?.ToString() ?? "",
                 });
             }
 

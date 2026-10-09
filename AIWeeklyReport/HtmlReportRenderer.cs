@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.ExtendedProperties;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 
 namespace AIWeeklyReport
 {
@@ -34,7 +35,16 @@ namespace AIWeeklyReport
             sb.Append(JobOrdersSection(data, companyDetails.CompanyName));
             sb.Append(CancelledTicketsSection(data));
             sb.Append(CorrectedTicketsSection(data));
-            sb.Append(TicketsByTypeSection(data));
+            
+            if (companyDetails.CompanyName.Equals("GRI"))
+            {
+                sb.Append(TicketsByTypeSectionGRI(data));
+            }
+            else
+            {
+                sb.Append(TicketsByTypeSection(data));
+
+            }
                 sb.Append(TicketsByCarrierIdSection(data));
                 sb.Append(TicketsByCreditedSection(data));
             sb.Append(Footer(data, companyDetails.ViewName));
@@ -266,7 +276,7 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
             {
                 sb.Append(@"
   <p class=""cap"">This week's sales split by product group, with the prior week's total marked for comparison.</p>
-                <div class=""legend""><span><i class=""sw"" style=""background:var(--asphalt)""></i>Asphalt</span><span><i class=""sw"" style=""background:var(--rock)""></i>Rock plant</span><span><i class=""sw"" style=""background:var(--fees)""></i>Unclassified</span><span><i class=""sw tick""></i>Prior week total</span></div>");
+                <div class=""legend""><span><i class=""sw"" style=""background:var(--asphalt)""></i>Asphalt</span><span><i class=""sw"" style=""background:var(--rock)""></i>Rock plant</span><span><i class=""sw tick""></i>Prior week total</span></div>");
             }
             
   sb.Append(@"<div class=""chart"" id=""plants""></div>
@@ -485,6 +495,31 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
             sb.Append("  </table></div>\n</section>\n");
             return sb.ToString();
         }
+        private static string TicketsByTypeSectionGRI(DashboardData d)
+        {
+            var c = d.Current;
+            var sb = new StringBuilder(@"<section>
+  <div class=""sechead""><h2>Manual Tickets</h2></div>
+ 
+");
+            if (c.TicketByTypeTicketsGRI.Count == 0)
+            {
+                sb.Append("  <div class=\"note\"><b>No tickets this week.</b></div>\n</section>\n");
+                return sb.ToString();
+            }
+            //sb.Append($@"  <div class=""note""><b>{c.TicketByTypeTickets.Count} tickets.</b></div>
+            sb.Append($@"
+  <div class=""tblwrap""><table>
+     <tr><th>Ticket</th><th>Date</th><th>Plant</th><th>Customer</th><th>Material</th><th class=""r"">Tons</th><th class=""r"">Price</th></tr>
+");
+            foreach (var t in c.TicketByTypeTicketsGRI)
+            {
+                sb.Append($@"    <tr><td class=""code"">{Html(t.TicketNo)}</td><td>{t.Date:MMM d}</td><td>{Html(t.Plant)}</td><td>{Html(t.Customer)}</td><td>{Html(t.Material)}</td><td class=""r"">{t.Tons:N2}</td><td class=""r"">{Money(t.Price)}</td></tr>
+");
+            }
+            sb.Append("  </table></div>\n</section>\n");
+            return sb.ToString();
+        }
         private static string TicketsByCarrierIdSection(DashboardData d)
         {
             var c = d.Current;
@@ -561,7 +596,7 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
             var dayAxisMax = RoundUpToStep(maxDay, out var dayStep);
 
             var plantRows = string.Join(",\n      ", d.Plants.Select(p =>
-                $"{{n:'{Html(p.Plant).Replace("'", "")}', a:{p.AsphaltSales.ToString("0.00", Culture)}, r:{p.RockSales.ToString("0.00", Culture)}, o:{p.OtherSales.ToString("0.00", Culture)}, p:{p.PriorTotal.ToString("0.00", Culture)}}}"));
+                $"{{n:'{Js(p.Plant).Replace("'", "")}', a:{p.AsphaltSales.ToString("0.00", Culture)}, r:{p.RockSales.ToString("0.00", Culture)}, o:{p.OtherSales.ToString("0.00", Culture)}, p:{p.PriorTotal.ToString("0.00", Culture)}}}"));
 
             var maxPlant = Math.Max(1m, d.Plants.Count > 0 ? d.Plants.Max(p => Math.Max(p.TotalSales, p.PriorTotal)) : 1m);
             var plantAxisMax = RoundUpToStep(maxPlant, out var plantStep);
@@ -696,5 +731,7 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
         }
 
         private static string Html(string? s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+        private static string Js(string value) =>    JsonSerializer.Serialize(value ?? "").Trim('"').Replace("\\'", "'");
+        
     }
 }
