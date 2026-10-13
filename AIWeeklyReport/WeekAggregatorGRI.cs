@@ -1,5 +1,3 @@
-using System;
-
 namespace AIWeeklyReport
 {
     public class WeekAggregatorGRI

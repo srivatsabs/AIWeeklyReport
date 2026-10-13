@@ -1,4 +1,6 @@
+using DocumentFormat.OpenXml.Bibliography;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ExternalConnectors;
 using Microsoft.IdentityModel.Logging;
 using System;
@@ -12,8 +14,8 @@ namespace AIWeeklyReport
     {
         public static async Task Main(string[] args)
         {
-            DateTime weekStart = DateTime.Parse("2026-08-30");
-            DateTime weekEnd = DateTime.Parse("2026-09-05");
+            //DateTime weekStart = DateTime.Parse("2026-08-30");
+            //DateTime weekEnd = DateTime.Parse("2026-09-05");
             // ----------------------------------------
             var config = new ConfigurationBuilder()
                             .SetBasePath(AppContext.BaseDirectory)
@@ -22,17 +24,18 @@ namespace AIWeeklyReport
             var connectionString = config["Database:ConnectionString"]
                                         ?? throw new InvalidOperationException("Database:ConnectionString is missing from appsettings.json");
             var claudeApiKey = config["Claude:ApiKey"] ?? throw new InvalidOperationException("Claude:ApiKey is missing from appsettings.json");
-            var priorWeekStart = weekStart.AddDays(-7);
-            var priorWeekEnd = weekEnd.AddDays(-7);
+            //var priorWeekStart = weekStart.AddDays(-7);
+            //var priorWeekEnd = weekEnd.AddDays(-7);
             DateTime today = DateTime.Today;
 
             int daysSinceSunday = (int)today.DayOfWeek;
 
-            DateTime lastSunday = today.AddDays(-daysSinceSunday - 7);
-            DateTime lastSaturday = lastSunday.AddDays(6);
+            DateTime weekStart = today.AddDays(-daysSinceSunday - 7);
+            DateTime weekEnd = weekStart.AddDays(6);
+            var priorWeekStart = weekStart.AddDays(-7);
+            var priorWeekEnd = weekEnd.AddDays(-7);
 
-            
-            
+
             // -----------------------------------
 
             var repository = new TicketRepository(connectionString);
@@ -40,8 +43,10 @@ namespace AIWeeklyReport
             companies = repository.GetCompanyDetails();
             foreach (var company in companies)
             {
-                //if (company.CompanyName.Equals("GRI"))
-                //{
+                try
+                {
+                    //if (company.CompanyName.Equals("GRI"))
+                    //{
                     if (company.CompanyName.Equals("GRI"))
                     {
                         var currentRaw = repository.GetTickets(weekStart, weekEnd, company.ViewFields);
@@ -165,13 +170,20 @@ namespace AIWeeklyReport
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"SharePoint upload failed (report was still written locally): {ex.Message}");
+                                SendFailureEmail(config, company, $"{weekStart: yyyyMMdd} to {weekEnd: yyyyMMdd}", "SharePoint upload failed(report was still written locally): { ex.Message}");
                             }
                         }
                         else
                         {
                             Console.WriteLine("SharePoint upload skipped — SHAREPOINT_* environment variables not fully set.");
                         }
-                    //}
+                        //}
+                    }
+                }
+                catch(Exception ex)
+                {
+                    SendFailureEmail(config, company, $"{weekStart: yyyyMMdd} to {weekEnd: yyyyMMdd}",ex.Message);
+
                 }
             }
         }
@@ -200,7 +212,7 @@ namespace AIWeeklyReport
                 {
                     newMessage.To.Add(to);
                 }
-                //Add BCC in the emails start
+                //Add CC in the emails start
                 //string ccAddress = config["Email:BCCEmail"] ?? throw new InvalidOperationException("Email:BCCEmail is missing from appsettings.json");
                 string ccAddress = company.EmailCC;
                 if (!string.IsNullOrEmpty(ccAddress))
@@ -212,8 +224,20 @@ namespace AIWeeklyReport
                     }
                 }
 
-                ////Add BCC in the emails end
+                ////Add CC in the emails end
+                //Add BCC in the emails start
+                string bccAddress = config["Email:BCCEmail"] ?? throw new InvalidOperationException("Email:BCCEmail is missing from appsettings.json");
+                
+                if (!string.IsNullOrEmpty(bccAddress))
+                {
+                    string[] bccAddressList = bccAddress.Split(';');
+                    foreach (var bcc in bccAddressList)
+                    {
+                        newMessage.Bcc.Add(bcc);
+                    }
+                }
 
+                ////Add BCC in the emails end
                 newMessage.Subject = subject;
                 StringBuilder mailBody = new StringBuilder();
                 mailBody.AppendFormat("<p>" + bodyMessage + "</p>");
@@ -235,17 +259,70 @@ namespace AIWeeklyReport
             }
             catch (SmtpException ex)
             {
-                
-               
+                SendFailureEmail(config, company, week,ex.Message);
+
             }
             catch (Exception ex)
             {
-                
+                SendFailureEmail(config,company, week, ex.Message);
 
             }
             
         }
+        private static void SendFailureEmail(IConfigurationRoot config, CompanyDetails company, string week, string errors)
+        {
 
-        
+            try
+            {
+                string toAddress= "srivatsabs@reed.net";
+                //string toAddress = config["Email:ToEmail"]?? throw new InvalidOperationException("Email:ToEmail is missing from appsettings.json");
+                string bodyMessage = "There was an failure while sending email for weekly reports for company : "+company.CompanyName;
+                bodyMessage += errors;
+                string subject = "Failure : "+config["Email:Subject"] ?? throw new InvalidOperationException("Email:Subject is missing from appsettings.json");
+                subject = subject.Replace("{company}", company.Company);
+                subject = subject.Replace("{week}", week);
+                //string footerMessage = Configuration.GetSection("AppSettings:ManagerMailFooterMessage").Value.ToString();
+                string[] toAddressList = toAddress.Split(';');
+                MailMessage newMessage = new MailMessage();
+                SmtpClient mailService = new SmtpClient();
+                newMessage.From = new MailAddress(config["Email:FromAddress"] ?? throw new InvalidOperationException("Email:FromAddress is missing from appsettings.json"));
+
+                foreach (var to in toAddressList)
+                {
+                    newMessage.To.Add(to);
+                }
+                
+                newMessage.Subject = subject;
+                StringBuilder mailBody = new StringBuilder();
+                mailBody.AppendFormat("<p>" + bodyMessage + "</p>");
+                //mailBody.AppendFormat("<p>" + footerMessage + "</p>");
+                newMessage.Body = mailBody.ToString();
+                newMessage.IsBodyHtml = true;
+                mailService.Port = Convert.ToInt32(config["Email:Port"] ?? throw new InvalidOperationException("Email:Port is missing from appsettings.json"));
+                mailService.EnableSsl = true;
+                mailService.DeliveryMethod = SmtpDeliveryMethod.Network;
+
+                mailService.Host = config["Email:SMTPHost"] ?? throw new InvalidOperationException("Email:SMTPHost is missing from appsettings.json");
+                mailService.UseDefaultCredentials = false;
+                mailService.Credentials = new NetworkCredential(config["Email:EmailAdd"], config["Email:EmailPWD"]);
+                mailService.Send(newMessage);
+
+
+
+
+            }
+            catch (SmtpException ex)
+            {
+                
+
+            }
+            catch (Exception ex)
+            {
+               
+
+            }
+
+        }
+
     }
 }

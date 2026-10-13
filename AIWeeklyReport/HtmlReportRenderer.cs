@@ -504,7 +504,7 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
 ");
             if (c.TicketByTypeTicketsGRI.Count == 0)
             {
-                sb.Append("  <div class=\"note\"><b>No tickets this week.</b></div>\n</section>\n");
+                sb.Append("  <div class=\"note\"><b>No manual tickets this week.</b></div>\n</section>\n");
                 return sb.ToString();
             }
             //sb.Append($@"  <div class=""note""><b>{c.TicketByTypeTickets.Count} tickets.</b></div>
