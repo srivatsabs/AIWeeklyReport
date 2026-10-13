@@ -276,8 +276,8 @@ namespace AIWeeklyReport
             {
                 
                 string toAddress = config["Email:BCCEmail"] ?? throw new InvalidOperationException("Email:BCCEmail is missing from appsettings.json");
-                string bodyMessage = "There was an failure while sending email for weekly reports for company : "+company.CompanyName;
-                bodyMessage += errors;
+                string bodyMessage = "There was an failure while creating weekly reports or sending email for company : " + company.CompanyName + Environment.NewLine;
+                bodyMessage += "<br>"+  errors;
                 string subject = "Failure : "+config["Email:Subject"] ?? throw new InvalidOperationException("Email:Subject is missing from appsettings.json");
                 subject = subject.Replace("{company}", company.Company);
                 subject = subject.Replace("{week}", week);
