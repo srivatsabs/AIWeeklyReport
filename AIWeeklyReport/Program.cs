@@ -274,8 +274,8 @@ namespace AIWeeklyReport
 
             try
             {
-                string toAddress= "srivatsabs@reed.net";
-                //string toAddress = config["Email:ToEmail"]?? throw new InvalidOperationException("Email:ToEmail is missing from appsettings.json");
+                
+                string toAddress = config["Email:BCCEmail"] ?? throw new InvalidOperationException("Email:BCCEmail is missing from appsettings.json");
                 string bodyMessage = "There was an failure while sending email for weekly reports for company : "+company.CompanyName;
                 bodyMessage += errors;
                 string subject = "Failure : "+config["Email:Subject"] ?? throw new InvalidOperationException("Email:Subject is missing from appsettings.json");
