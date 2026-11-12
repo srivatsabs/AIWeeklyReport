@@ -62,7 +62,8 @@ namespace AIWeeklyReport
                     CarrierId = reader["CarrierID"]?.ToString() ?? "",
                     Credited = reader["Credited"]?.ToString() ?? "",
                     GroupDesc = reader["GroupDesc"]?.ToString() ?? "",
-                    
+                    ReferTicketNo= reader["ReferTicketNo"]?.ToString() ?? ""
+
                 });
             }
 

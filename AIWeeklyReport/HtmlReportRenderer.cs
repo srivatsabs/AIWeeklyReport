@@ -459,11 +459,11 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
             }
             sb.Append($@"  <div class=""note""><b>{c.CorrectedCount} tickets, {Money(c.CorrectedSales)}, {c.CorrectedTons:N0} tons.</b></div>
   <div class=""tblwrap""><table>
-    <tr><th>Ticket</th><th>Date</th><th>Plant</th><th>Customer</th><th>Material</th><th class=""r"">Tons</th><th class=""r"">Price</th></tr>
+    <tr><th>Ticket</th><th>Refer Ticket No</th><th>Date</th><th>Plant</th><th>Customer</th><th>Material</th><th class=""r"">Tons</th><th class=""r"">Price</th></tr>
 ");
             foreach (var t in c.CorrectedTickets)
             {
-                sb.Append($@"    <tr><td class=""code"">{Html(t.TicketNo)}</td><td>{t.Date:MMM d}</td><td>{Html(t.Plant)}</td><td>{Html(t.Customer)}</td><td>{Html(t.Material)}</td><td class=""r"">{t.Tons:N2}</td><td class=""r"">{Money(t.Price)}</td></tr>
+                sb.Append($@"    <tr><td class=""code"">{Html(t.TicketNo)}</td><td class=""code"">{Html(t.ReferTicketNo)}</td><td>{t.Date:MMM d}</td><td>{Html(t.Plant)}</td><td>{Html(t.Customer)}</td><td>{Html(t.Material)}</td><td class=""r"">{t.Tons:N2}</td><td class=""r"">{Money(t.Price)}</td></tr>
 ");
             }
             sb.Append("  </table></div>\n</section>\n");
@@ -552,21 +552,30 @@ td.code{{font-family:""IBM Plex Mono"",ui-monospace,monospace;font-size:12.5px;c
   <div class=""sechead""><h2>Tickets By Credited</h2></div>
   
 ");
-            if (c.TicketByCreditedTickets.Count == 0)
+            if (c.TicketByCreditedCount == 0)
             {
                 sb.Append("  <div class=\"note\"><b>No tickets this week.</b></div>\n</section>\n");
                 return sb.ToString();
             }
-            //sb.Append($@"  <div class=""note""><b>{c.TicketByCreditedTickets.Count} tickets.</b></div>
+            //sb.Append($@"  <div class=""note""><b>{c.TicketByCreditedCount} tickets.</b></div>
+            //<tr><th>Credited</th><th>Ticket</th><th class=""r"">Tons</th><th class=""r"">Sales</th></tr>
+            sb.Append($@"  <div class=""note""><b>{c.TicketByCreditedCount} tickets, {Money(c.TicketByCreditedSales)}, {c.TicketByCreditedTons:N0} tons.</b></div>");
             sb.Append($@"
   <div class=""tblwrap""><table>
-   <tr><th>Credited</th><th>Ticket</th><th class=""r"">Tons</th><th class=""r"">Sales</th></tr>
+  <tr><th>Ticket</th><th>Date</th><th>Plant</th><th>Customer</th><th>Material</th><th class=""r"">Tons</th><th class=""r"">Price</th></tr>
+   
 ");
-            foreach (var t in c.TicketByCreditedTickets)
+
+            foreach (var t in c.CreditedTickets)
             {
-                sb.Append($@"    <tr><td>{Html(t.Credited)}</td><td class=""code"">{Html(t.Tickets.ToString())}</td><td class=""r"">{t.Tons:N2}</td><td class=""r"">{Money(t.Sales)}</td></tr>
+                sb.Append($@"    <tr><td class=""code"">{Html(t.TicketNo)}</td><td>{t.Date:MMM d}</td><td>{Html(t.Plant)}</td><td>{Html(t.Customer)}</td><td>{Html(t.Material)}</td><td class=""r"">{t.Tons:N2}</td><td class=""r"">{Money(t.Price)}</td></tr>
 ");
             }
+//            foreach (var t in c.TicketByCreditedTickets)
+//            {
+//                sb.Append($@"    <tr><td>{Html(t.Credited)}</td><td class=""code"">{Html(t.Tickets.ToString())}</td><td class=""r"">{t.Tons:N2}</td><td class=""r"">{Money(t.Sales)}</td></tr>
+//");
+//            }
             sb.Append("  </table></div>\n</section>\n");
             return sb.ToString();
         }

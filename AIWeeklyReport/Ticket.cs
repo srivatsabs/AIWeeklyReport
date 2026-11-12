@@ -44,6 +44,7 @@ namespace AIWeeklyReport
         public string CarrierId { get; set; } = "";
         public string  Credited{ get; set; } = "";
         public string GroupDesc { get; set; } = "";
+        public string ReferTicketNo { get; set; } = "";
 
     }
 }

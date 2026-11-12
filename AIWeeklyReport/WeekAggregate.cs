@@ -80,6 +80,7 @@ namespace AIWeeklyReport
     public class CorrectedTicketRow
     {
         public string TicketNo { get; set; } = "";
+        public string ReferTicketNo { get; set; } = "";
         public DateTime Date { get; set; }
         public string Plant { get; set; } = "";
         public string Customer { get; set; } = "";
@@ -106,6 +107,17 @@ namespace AIWeeklyReport
         public string Credited { get; set; } = "";
 
         public decimal Sales { get; set; }
+        public decimal Tons { get; set; }
+        public decimal Price { get; set; }
+    }
+
+    public class CreditedTicketRow
+    {
+        public string TicketNo { get; set; } = "";
+        public DateTime Date { get; set; }
+        public string Plant { get; set; } = "";
+        public string Customer { get; set; } = "";
+        public string Material { get; set; } = "";
         public decimal Tons { get; set; }
         public decimal Price { get; set; }
     }
@@ -184,6 +196,7 @@ namespace AIWeeklyReport
         public decimal TicketByCreditedSales { get; set; }
         public decimal TicketByCreditedTons { get; set; }
         public List<TicketByCreditedRow> TicketByCreditedTickets { get; set; } = new();
+        public List<CreditedTicketRow> CreditedTickets { get; set; } = new();
         public decimal CustomerTaxCollected { get; set; }
 
         public List<DayAgg> Days { get; set; } = new();

@@ -82,6 +82,7 @@ namespace AIWeeklyReport
                 .Select(t => new CorrectedTicketRow
                 {
                     TicketNo = t.TicketNo,
+                    ReferTicketNo=t.ReferTicketNo,
                     Date = t.TicketDate.Date,
                     Plant = t.LocationDescription,
                     Customer = t.CustomerDescription,
@@ -134,12 +135,28 @@ namespace AIWeeklyReport
     })
     .ToList();
 
-
+        
             // --- Ticket by Credited  ---
             var TicketByCredited = active.Where(x => x.Credited == "C")
      .GroupBy(t => t.Credited)
      .ToList();
-
+            var credited = active.Where(x => x.Credited == "C").ToList();
+            agg.TicketByCreditedCount = credited.Select(t => t.TicketNo).Distinct().Count();
+            agg.TicketByCreditedSales = credited.Sum(t => t.Price);
+            agg.TicketByCreditedTons = credited.Sum(t => t.Qty);
+            agg.CreditedTickets = credited
+               .Select(t => new CreditedTicketRow
+               {
+                   TicketNo = t.TicketNo,
+                   Date = t.TicketDate.Date,
+                   Plant = t.LocationDescription,
+                   Customer = t.CustomerDescription,
+                   Material = t.Description,
+                   Tons = t.Qty,
+                   Price = t.Price
+               })
+               .OrderByDescending(c => c.Price)
+               .ToList();
             agg.TicketByCreditedTickets = TicketByCredited
      .Select(g => new TicketByCreditedRow
      {
