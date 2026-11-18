@@ -46,7 +46,10 @@ namespace AIWeeklyReport
 
             }
                 sb.Append(TicketsByCarrierIdSection(data));
+            if (!companyDetails.CompanyName.Equals("VSS Emultech"))
+            {
                 sb.Append(TicketsByCreditedSection(data));
+            }
             sb.Append(Footer(data, companyDetails.ViewName));
             sb.Append("</div>\n");
             sb.Append(Script(data));
